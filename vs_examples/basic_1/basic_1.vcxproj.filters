@@ -43,6 +43,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\ReadMe.md" />
+    <None Include="..\..\ReadMe-template.md">
+      <Filter>vs_examples</Filter>
+    </None>
   </ItemGroup>
 </Project>
