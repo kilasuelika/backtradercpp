@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="basic_1.cpp">
+      <Filter>vs_examples\basic_1</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\backtradercpp\Cerebro.hpp">
+      <Filter>include\backtradercpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\backtradercpp\Common.hpp">
+      <Filter>include\backtradercpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\backtradercpp\DataFeeds.hpp">
+      <Filter>include\backtradercpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\backtradercpp\Strategy.hpp">
+      <Filter>include\backtradercpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\backtradercpp\Broker.hpp">
+      <Filter>include\backtradercpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\backtradercpp\util.hpp">
+      <Filter>include\backtradercpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\backtradercpp\AyalysisUtil.hpp">
+      <Filter>include\backtradercpp</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="vs_examples">
+      <UniqueIdentifier>{f8616988-9ed2-407f-8f67-118f07e8960a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vs_examples\basic_1">
+      <UniqueIdentifier>{c4ed406d-b62c-4bda-ac5a-8cff8abaf635}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{69340bfd-311a-4c9e-ad19-f25bb2717cfa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\backtradercpp">
+      <UniqueIdentifier>{12682805-4cbb-48b2-8284-572f0d6d185d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ReadMe.md">
+      <Filter>vs_examples\basic_1</Filter>
+    </None>
+  </ItemGroup>
+</Project>
