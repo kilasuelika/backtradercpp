@@ -6,7 +6,7 @@ using namespace std;
 struct SimpleStrategy : strategy::GenericStrategy {
     void run() override {
         // Buy assets at 5th day.
-        if (i == 5) {
+        if (time_index() == 5) {
             for (int j = 0; j < data(0).assets(); ++j) {
                 if (data(0).valid(-1, j)) {
                     // Buy 10 asset j at the price of latest day(-1) on the broker 0.
@@ -14,10 +14,7 @@ struct SimpleStrategy : strategy::GenericStrategy {
                 }
             }
         }
-        ++i;
     }
-
-    int i = 1;
 };
 int main() {
     Cerebro cerebro;
@@ -26,7 +23,7 @@ int main() {
     cerebro.add_data(
         std::make_shared<feeds::CSVTabularData>("../../example_data/CSVTabular/djia.csv",
                                                 feeds::TimeStrConv::non_delimited_date),
-        std::make_shared<broker::Broker>(0.0005, 0.001),);
+        std::make_shared<broker::Broker>(0.0005, 0.001), );
     cerebro.set_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }
