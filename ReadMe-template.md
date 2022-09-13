@@ -23,7 +23,7 @@ See `vs_examples`.
 
 Use a weight vector to specify target asset value weights. Today's **open** will be used to calculate target volumes. `adjust_to_weight_target` is especially usefull for maching learning type strategies.
 
-```
+```cpp
 ![[vs_examples/equal_weight/equal_weight.cpp]]
 ```
 
@@ -31,7 +31,7 @@ Use a weight vector to specify target asset value weights. Today's **open** will
 
 Here each csv represents an asset. It contains time, open, high, low, close. An array is used to specify the column index for each variable in sequence.
 
-```
+```cpp
 ![[vs_examples/delayed_buy/delayed_buy.cpp]]
 ```
 
@@ -50,7 +50,7 @@ Due to forward adjuted prices (keep newest price fixed and adjust older data) ma
 
 ### Data API used in strategy
 
-```
+```cpp
 int time_index();  //Count of days.
 
 FullAssetData &data(int broker);  	
@@ -68,7 +68,7 @@ int position(int broker, int asset);
 
 ```
 Here `VecArrXd` is `eigen` type:
-```
+```cpp
 Eigen::Array<double, Eigen::Dynamic, 1>
 ```
 
