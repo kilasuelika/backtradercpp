@@ -10,6 +10,7 @@
 #include <fmt/format.h>
 #include <fmt/color.h>
 #include <memory>
+#include <map>
 
 namespace backtradercpp {
 using VecArrXd = Eigen::Array<double, Eigen::Dynamic, 1>;
@@ -26,6 +27,7 @@ using boost::posix_time::time_duration;
 struct OHLCData {
     VecArrXd open, high, low, close;
     void resize(int assets);
+    void reset();
 };
 struct FeedData {
     boost::posix_time::ptime time;
@@ -34,6 +36,8 @@ struct FeedData {
     VecArrXb valid;
     void validate_assets();
     void resize(int assets);
+
+    void reset();
 };
 
 class FullAssetData {
@@ -82,33 +86,172 @@ class FullAssetData {
 };
 
 enum OrderType { Market, Limit };
+enum OrderState { Success, Waiting, Expired };
 struct PriceEvaluatorInput {
     double open, high, low, close;
 };
 struct GenericPriceEvaluator {
     virtual double price(const PriceEvaluatorInput &input) = 0;
-    virtual ~GenericPriceEvaluator();
+    virtual ~GenericPriceEvaluator() = default;
 };
+struct EvalOpen : GenericPriceEvaluator {
+    int tag = 0; // 0:exact, 1: open+v, 2:open*v
+    double v = 0;
+    EvalOpen(int tag_, int v_) : tag(tag_), v(v_) {}
+    double price(const PriceEvaluatorInput &input) override {
+        switch (tag) {
+        case (0):
+            return input.open;
+        case (1):
+            return input.open + v;
+        case (2):
+            return input.open * v;
+        default:
+            return input.open;
+        }
+    }
+    static std::shared_ptr<GenericPriceEvaluator> exact() {
+        static std::shared_ptr<GenericPriceEvaluator> p = std::make_shared<EvalOpen>(0, 0);
+        return p;
+    }
+    static std::shared_ptr<GenericPriceEvaluator> plus(double v) {
+        std::shared_ptr<GenericPriceEvaluator> p = std::make_shared<EvalOpen>(1, v);
+        return p;
+    }
+    static std::shared_ptr<GenericPriceEvaluator> mul(double v) {
+        std::shared_ptr<GenericPriceEvaluator> p = std::make_shared<EvalOpen>(2, v);
+        return p;
+    }
+};
+
 struct Order {
-    OrderType type;
+    OrderState state = OrderState::Waiting;
     int broker_id = 0;
     int asset;
-    double price;
-    int volume;
+    double price = 0;
+    int volume = 0;
+    double value = 0; // price*volume
+    double fee = 0;   // Commission + tax
     bool processed = false;
-    double commission = 0;
-    double tax = 0;
     std::shared_ptr<GenericPriceEvaluator> price_eval = nullptr;
-    boost::posix_time::ptime valid_from, valid_until, processed_at;
+    ptime created_at, valid_from, valid_until, processed_at;
 };
 
 // Each broker has an OrderPool.
 struct OrderPool {
     std::vector<Order> orders;
 };
+
+struct PortfolioItem {
+    int position = 0;
+    double prev_price = 0,
+           prev_adj_price = 0; // Long 5 at price 10 -> investment=5*10+cost. Then sell 2 at price
+                               // 11 -> investment doesn't change. So only record if same direction.
+    ptime buying_time;         // Initial buying.
+
+    double value = 0, profit = 0, dyn_adj_profit = 0, adj_profit;
+    time_duration holding_time = hours(0);
+
+    void update_value(const ptime &time, double new_price, double new_adj_price);
+};
+struct Portfolio {
+    double cash = 0;
+    std::map<int, PortfolioItem> portfolio_items;
+
+    int position(int asset) const;
+    double profit(int asset) const;
+
+    VecArrXi positions(int total_assets) const;
+    VecArrXd values(int total_assets) const;
+    VecArrXd profits(int total_assets) const;
+
+    void update(const Order &order, double adj_price);
+};
+#define BK_DEFINE_PORTFOLIO_MEMBER_ACCESSOR(var, type, default_val)                                \
+    inline type Portfolio::var(int asset) const {                                                  \
+        auto it = portfolio_items.find(asset);                                                     \
+        if (it != portfolio_items.end()) {                                                         \
+            return it->second.var;                                                                 \
+        } else {                                                                                   \
+            return default_val;                                                                    \
+        }                                                                                          \
+    }
+BK_DEFINE_PORTFOLIO_MEMBER_ACCESSOR(position, int, 0);
+BK_DEFINE_PORTFOLIO_MEMBER_ACCESSOR(profit, double, 0);
+#undef BK_DEFINE_PORTFOLIO_MEMBER_ACCESSOR
+
+#define BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(name, type, default_val)                           \
+    inline type Portfolio::name##s(int total_assets) const {                                       \
+        type res(total_assets);                                                                    \
+        res.setConstant(default_val);                                                              \
+        for (const auto &[k, v] : portfolio_items) {                                               \
+            res.coeffRef(k) = v.name;                                                              \
+        }                                                                                          \
+        return res;                                                                                \
+    }
+
+BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(position, VecArrXi, 0)
+BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(value, VecArrXd, 0)
+BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(profit, VecArrXd, 0)
+#undef BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR
+
+void Portfolio::update(const Order &order, double adj_price) {
+    int asset = order.asset;
+    auto it = portfolio_items.find(asset);
+    cash -= (order.value + order.fee);
+    if (it != portfolio_items.end()) { // Found
+        auto &item = it->second;
+        // Buy
+        if (order.volume > 0) {
+            item.profit += (order.price - item.prev_price) * item.position;
+            double adj_profit_diff = (adj_price - item.prev_adj_price) * item.position;
+            item.adj_profit += adj_profit_diff;
+            item.dyn_adj_profit += adj_profit_diff;
+        } else {
+            double cash_diff =
+                (item.dyn_adj_profit - item.profit) * ((-order.volume) / item.position);
+            cash += cash_diff;
+            item.dyn_adj_profit -= cash_diff;
+        }
+        item.position += order.volume;
+        item.value += order.value;
+        if (item.position == 0) {
+            portfolio_items.erase(it);
+        }
+    } else {
+        portfolio_items[asset] = {.position = order.volume,
+                                  .prev_price = order.price,
+                                  .prev_adj_price = adj_price,
+                                  .buying_time = order.processed_at,
+                                  .value = order.value,
+                                  .profit = -order.fee,
+                                  .dyn_adj_profit = -order.fee,
+                                  .adj_profit = -order.fee};
+    }
+}; // namespace backtradercpp
+
+inline void PortfolioItem::update_value(const ptime &date, double new_price, double new_adj_price) {
+    holding_time = date - buying_time;
+
+    value = new_price * position;
+    profit += (new_price - prev_price) * position;
+
+    double adj_profit_diff = (new_adj_price - prev_adj_price) * position;
+    adj_profit += adj_profit_diff;
+    dyn_adj_profit += adj_profit_diff;
+
+    prev_price = new_price;
+    prev_adj_price = new_adj_price;
+}
+
 void OHLCData::resize(int assets) {
     for (auto &ele : {&open, &high, &low, &close}) {
         ele->resize(assets);
+    }
+}
+void backtradercpp::OHLCData::reset() {
+    for (auto &ele : {&open, &high, &low, &close}) {
+        ele->setConstant(0);
     }
 }
 void FeedData::resize(int assets) {
@@ -117,8 +260,13 @@ void FeedData::resize(int assets) {
     volume.resize(assets);
     valid.resize(assets);
 }
+void backtradercpp::FeedData::reset() {
+    data.reset();
+    adj_data.reset();
+    valid.setConstant(false);
+}
 void FeedData::validate_assets() {
-    valid = (data.open > 0) || (data.high > 0) || (data.low > 0) || (data.close > 0);
+    valid = (data.open > 0) && (data.high > 0) && (data.low > 0) && (data.close > 0);
 }
 
 #define BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, var, fun)                                \

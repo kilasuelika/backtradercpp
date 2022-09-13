@@ -1,3 +1,7 @@
 vs_examples/.vs
 vs_examples/x64
+
 vs_examples/basic_1/x64
+vs_examples/delayed_buy/x64
+vs_examples/directory_data/x64
+vs_examples/equal_weight/x64

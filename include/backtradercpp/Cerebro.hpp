@@ -8,7 +8,8 @@ namespace backtradercpp {
 
 class Cerebro {
   public:
-    void add_data(std::shared_ptr<feeds::GenericData> data, std::shared_ptr<broker::Broker> broker);
+    void add_data(std::shared_ptr<feeds::GenericData> data, std::shared_ptr<broker::Broker> broker,
+                  int window = 1);
     // void init_feeds_aggrator_();
     void set_strategy(std::shared_ptr<strategy::GenericStrategy> strategy);
     void init_strategy();
@@ -25,8 +26,9 @@ class Cerebro {
 };
 
 void Cerebro::add_data(std::shared_ptr<feeds::GenericData> data,
-                       std::shared_ptr<broker::Broker> broker) {
+                       std::shared_ptr<broker::Broker> broker, int window) {
     feeds_agg_.add_feed(data);
+    feeds_agg_.set_window(feeds_agg_.datas().size() - 1, window);
     broker_agg_.add_broker(broker);
 
     broker->resize(data->assets());
@@ -49,8 +51,13 @@ void Cerebro::run() {
         broker_agg_.process(order_pool);
         broker_agg_.update_info();
 
-        fmt::print("Time: {}, wealth: {}\n", to_simple_string(feeds_agg_.time()),
-                   broker_agg_.wealth());
+        fmt::print("{}, total_wealth: {:12.4f}\n", to_simple_string(feeds_agg_.time()),
+                   broker_agg_.total_wealth());
+
+        // for (const auto &item : broker_agg_.portfolio(0).portfolio_items) {
+        //     fmt::print("asset: {}, value: {}, profit: {}\n", item.first, item.second.value,
+        //                item.second.profit);
+        // }
     }
     broker_agg_.summary();
 }

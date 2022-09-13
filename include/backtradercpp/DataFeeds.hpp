@@ -8,6 +8,10 @@
 #include <functional>
 #include "util.hpp"
 #include <algorithm>
+#include <numeric>
+#include <filesystem>
+//#include "3rd_party/glob/glob.hpp"
+//#include <ranges>
 
 namespace backtradercpp {
 namespace feeds {
@@ -19,11 +23,18 @@ struct TimeStrConv {
     using func_type = std::function<std::string(const std::string &)>;
 
     //"20100202"
-    static std::string non_delimt_date(const std::string &date_str) {
+    static std::string non_delimited_date(const std::string &date_str) {
         std::string res_date = "0000-00-00 00:00:00";
         res_date.replace(0, 4, std::string_view{date_str.data(), 4});
         res_date.replace(5, 2, std::string_view{date_str.data() + 4, 2});
         res_date.replace(8, 2, std::string_view{date_str.data() + 6, 2});
+        return res_date;
+    }
+    static std::string delimited_date(const std::string &date_str) {
+        std::string res_date = "0000-00-00 00:00:00";
+        res_date.replace(0, 4, std::string_view{date_str.data(), 4});
+        res_date.replace(5, 2, std::string_view{date_str.data() + 5, 2});
+        res_date.replace(8, 2, std::string_view{date_str.data() + 8, 2});
         return res_date;
     }
 };
@@ -51,6 +62,7 @@ class GenericData {
 
     int assets_ = 0;
     FeedData next_;
+    std::vector<std::string> codes_;
     bool finished_ = false;
 
     TimeStrConv::func_type time_converter_;
@@ -59,6 +71,8 @@ class GenericData {
 struct CSVRowParaser {
     inline static boost::escaped_list_separator<char> esc_list_sep{"", ",", "\"\'"};
     static std::vector<std::string> parse_row(const std::string &row);
+
+    static double parse_double(const std::string &ele);
 };
 class CSVTabularData : public GenericData {
   public:
@@ -76,12 +90,43 @@ class CSVTabularData : public GenericData {
     std::ifstream raw_data_file_, adj_data_file_;
     std::string next_row_, adj_next_row_;
 };
+
+class CSVDirectoryData : public GenericData {
+  public:
+    // tohlc_map: column number of time, open, high, low, close
+    CSVDirectoryData(const std::string &raw_data_dir,
+                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                     TimeStrConv::func_type time_converter = nullptr);
+    CSVDirectoryData(const std::string &raw_data_dir, const std::string &adj_data_dir,
+                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                     TimeStrConv::func_type time_converter = nullptr);
+    bool read() override;
+
+  private:
+    void init();
+
+    std::string raw_data_dir, adj_data_dir;
+    std::vector<std::string> raw_data_filenames, adj_data_filenames;
+
+    // std::vector<std::filesystem::path> raw_file_names, adj_file_names;
+    std::vector<std::ifstream> raw_files, adj_files;
+    std::vector<std::string> raw_line_buffer, adj_line_buffer;
+    std::vector<std::vector<std::string>> raw_parsed_buffer, adj_parsed_buffer;
+    std::vector<std::array<double, 4>> raw_parsed_double_buffer, adj_parsed_double_buffer;
+    std::array<int, 5> tohlc_map;
+
+    std::vector<ptime> times;
+
+    enum State { Valid, Invalid, Finished };
+    std::vector<State> status; // Track if data in each file has been readed.
+};
 class FeedsAggragator {
   public:
     FeedsAggragator() = default;
     // FeedsAggragator(const std::vector<std::shared_ptr<feeds::GenericData>> &);
     const std::vector<FullAssetData> &datas() const { return data_; }
     const auto &datas_valid() const { return datas_valid_; }
+    const FullAssetData &data(int i) const { return data_[i]; }
     void add_feed(std::shared_ptr<feeds::GenericData> feed);
     void init();
     auto finished() const { return finished_; }
@@ -89,6 +134,8 @@ class FeedsAggragator {
     // const std::vector<FullAssetData> &get_and_read();
     auto data_ptr() { return &data_; }
     const auto &time() const { return time_; }
+
+    int set_window(int src, int window) { data_[src].set_window(window); };
 
   private:
     std::vector<std::shared_ptr<feeds::GenericData>> feeds_;
@@ -116,6 +163,14 @@ std::vector<std::string> CSVRowParaser::parse_row(const std::string &row) {
     std::vector<std::string> res;
     for (auto beg = tok.begin(); beg != tok.end(); ++beg) {
         res.emplace_back(*beg);
+    }
+    return res;
+}
+double backtradercpp::feeds::CSVRowParaser::parse_double(const std::string &ele) {
+    double res = 0;
+    try {
+        res = boost::lexical_cast<double>(ele);
+    } catch (...) {
     }
     return res;
 }
@@ -203,6 +258,136 @@ inline void FeedsAggragator::add_feed(std::shared_ptr<feeds::GenericData> feed) 
     next_.push_back(&(feed->next_));
     data_.emplace_back(feed->next_);
     datas_valid_.resize(feeds_.size());
+}
+
+backtradercpp::feeds::CSVDirectoryData::CSVDirectoryData(const std::string &raw_data_dir,
+                                                         std::array<int, 5> tohlc_map,
+                                                         TimeStrConv::func_type time_converter)
+    : GenericData(time_converter), raw_data_dir(raw_data_dir), adj_data_dir(raw_data_dir),
+      tohlc_map(tohlc_map) {
+    init();
+}
+backtradercpp::feeds::CSVDirectoryData::CSVDirectoryData(const std::string &raw_data_dir,
+                                                         const std::string &adj_data_dir,
+                                                         std::array<int, 5> tohlc_map,
+                                                         TimeStrConv::func_type time_converter)
+    : GenericData(time_converter), raw_data_dir(raw_data_dir), adj_data_dir(adj_data_dir),
+      tohlc_map(tohlc_map) {
+    init();
+}
+void CSVDirectoryData::init() {
+    for (const auto &entry : std::filesystem::directory_iterator(raw_data_dir)) {
+        auto file_path = entry.path().filename();
+        auto adj_file_path = std::filesystem::path(adj_data_dir) / file_path;
+        if (!std::filesystem::exists(adj_file_path)) {
+            fmt::print(fmt::fg(fmt::color::red),
+                       "Adjust data file {} doesn't exist. Ignore asset {}.\n",
+                       adj_file_path.string(), file_path.string());
+        } else {
+            raw_files.emplace_back(entry.path());
+            adj_files.emplace_back(adj_file_path);
+
+            raw_data_filenames.emplace_back(entry.path().string());
+            adj_data_filenames.emplace_back(adj_file_path.string());
+
+            ++assets_;
+            codes_.emplace_back(file_path.string());
+        }
+    }
+    next_.resize(assets_);
+    times.resize(assets_);
+    status.resize(assets_, State::Invalid);
+    raw_line_buffer.resize(assets_);
+    adj_line_buffer.resize(assets_);
+    raw_parsed_buffer.resize(assets_);
+    adj_parsed_buffer.resize(assets_);
+    raw_parsed_double_buffer.resize(assets_);
+    adj_parsed_double_buffer.resize(assets_);
+
+    // Read header.
+#pragma omp parallel for
+    for (int i = 0; i < assets_; ++i) {
+        std::getline(raw_files[i], raw_line_buffer[i]);
+        std::getline(adj_files[i], adj_line_buffer[i]);
+    }
+}
+
+bool backtradercpp::feeds::CSVDirectoryData::read() {
+
+    next_.reset();
+    // read data.
+    for (int i = 0; i < assets_; ++i) {
+        switch (status[i]) {
+        case Finished:
+            break;
+        case Invalid:
+            // Try read data from file.
+            if (!raw_files[i].eof()) {
+                std::getline(raw_files[i], raw_line_buffer[i]);
+                raw_parsed_buffer[i] = CSVRowParaser::parse_row(raw_line_buffer[i]);
+                if (raw_parsed_buffer[i].empty()) {
+                    status[i] = State::Finished;
+                    break;
+                }
+                std::getline(adj_files[i], adj_line_buffer[i]);
+                adj_parsed_buffer[i] = CSVRowParaser::parse_row(adj_line_buffer[i]);
+                const auto &[t1, t2] = std::make_tuple(raw_parsed_buffer[i][tohlc_map[0]],
+                                                       adj_parsed_buffer[i][tohlc_map[0]]);
+                if (t1 != t2) {
+                    fmt::print(fmt::fg(fmt::color::red),
+                               "data in raw data file {} and adjusted data file {} have different "
+                               "dates: {} "
+                               "and {}. Please check data. Now abort...\n",
+                               raw_data_filenames[i], adj_data_filenames[i], t1, t2);
+                    std::abort();
+                }
+                times[i] = boost::posix_time::time_from_string(time_converter_(t1));
+
+                status[i] = State::Valid; // After reading data, set to valid.
+            } else {
+                status[i] = State::Finished;
+            }
+            break;
+        case Valid:
+            break;
+        default:
+            break;
+        }
+    }
+    if (std::ranges::all_of(status, [](const auto &e) { return e == State::Finished; })) {
+        return false;
+    }
+    // Find smallest time.
+    auto it = std::ranges::min_element(times);
+    if (it != times.end()) {
+        next_.time = *it;
+        // Read data.
+        for (int i = 0; i < assets_; ++i) {
+            if ((status[i] == State::Valid) && (times[i] == *it)) {
+                for (int j = 0; j < 4; ++j) {
+                    raw_parsed_double_buffer[i][j] =
+                        CSVRowParaser::parse_double(raw_parsed_buffer[i][tohlc_map[j + 1]]);
+                    adj_parsed_double_buffer[i][j] =
+                        CSVRowParaser::parse_double(adj_parsed_buffer[i][tohlc_map[j + 1]]);
+                }
+                next_.data.open.coeffRef(i) = raw_parsed_double_buffer[i][0];
+                next_.data.high.coeffRef(i) = raw_parsed_double_buffer[i][1];
+                next_.data.low.coeffRef(i) = raw_parsed_double_buffer[i][2];
+                next_.data.close.coeffRef(i) = raw_parsed_double_buffer[i][3];
+
+                next_.adj_data.open.coeffRef(i) = adj_parsed_double_buffer[i][0];
+                next_.adj_data.high.coeffRef(i) = adj_parsed_double_buffer[i][1];
+                next_.adj_data.low.coeffRef(i) = adj_parsed_double_buffer[i][2];
+                next_.adj_data.close.coeffRef(i) = adj_parsed_double_buffer[i][3];
+
+                status[i] = State::Invalid; // After read data, set to invalid.
+            }
+        }
+        next_.validate_assets();
+        return true;
+    } else {
+        return false;
+    }
 }
 } // namespace feeds
 } // namespace backtradercpp

@@ -1,0 +1,38 @@
+#include "../../include/backtradercpp/Cerebro.hpp"
+using namespace backtradercpp;
+
+struct SimpleStrategy : strategy::GenericStrategy {
+    void run() override {
+        // Do nothing at initial 30 days.
+        if (time_index() < 30) {
+            return;
+        }
+        // If daily return larger than 0.05, then buy.
+        for (int j = 0; j < data(0).assets(); ++j) {
+            if (data(0).valid(-1, j)) {
+                double p = data(0).close(-1, j), old_p = data(0).close(-2, j);
+                if ((old_p > 0) && ((p / old_p) > 1.05))
+                    // Issue an order of buy at the price of open on next day.
+                    delayed_buy(0, j, EvalOpen::exact(), 10);
+            }
+        }
+        // Sell on broker 0 if profits or loss reaching target.
+        // Price is open of next day.
+        for (const auto &[asset, item] : portfolio_items(0)) {
+            if (item.profit > 1500 || item.profit < -1000) {
+                close(0, asset, EvalOpen::exact());
+            }
+        }
+    }
+};
+
+int main() {
+    Cerebro cerebro;
+
+    cerebro.add_data(
+        std::make_shared<feeds::CSVTabularData>("../../example_data/CSVTabular/djia.csv",
+                                                feeds::TimeStrConv::non_delimited_date),
+        std::make_shared<broker::Broker>(10000, 0.0005, 0.001), 2); // 2 for window
+    cerebro.set_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.run();
+}

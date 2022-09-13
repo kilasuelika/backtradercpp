@@ -4,6 +4,7 @@
 
 #include "Common.hpp"
 #include "DataFeeds.hpp"
+#include "Broker.hpp"
 
 namespace backtradercpp {
 namespace strategy {
@@ -18,14 +19,39 @@ class GenericStrategy {
     virtual void init_strategy(feeds::FeedsAggragator *feed_agg,
                                broker::BrokerAggragator *broker_agg);
 
-    const Order &buy(int broker_id, int asset, double price, int volume);
-    Order delayed_buy(int broker_id, int asset, int price, int volume,
-                      date_duration til_start_d = days(1), time_duration til_start_t = hours(0),
-                      date_duration start_to_end_d = days(1),
-                      time_duration start_to_end_t = hours(0));
+    const Order &buy(int broker_id, int asset, double price, int volume,
+                     date_duration til_start_d = days(0), time_duration til_start_t = hours(0),
+                     date_duration start_to_end_d = days(0),
+                     time_duration start_to_end_t = hours(23));
+    const Order &buy(int broker_id, int asset, std::shared_ptr<GenericPriceEvaluator> price_eval,
+                     int volume, date_duration til_start_d = days(0),
+                     time_duration til_start_t = hours(0), date_duration start_to_end_d = days(0),
+                     time_duration start_to_end_t = hours(23));
+    const Order &delayed_buy(int broker_id, int asset, double price, int volume,
+                             date_duration til_start_d = days(1),
+                             time_duration til_start_t = hours(0),
+                             date_duration start_to_end_d = days(1),
+                             time_duration start_to_end_t = hours(0));
+    const Order &delayed_buy(int broker_id, int asset,
+                             std::shared_ptr<GenericPriceEvaluator> price_eval, int volume,
+                             date_duration til_start_d = days(1),
+                             time_duration til_start_t = hours(0),
+                             date_duration start_to_end_d = days(1),
+                             time_duration start_to_end_t = hours(0));
     Order delayed_buy(int broker_id, int asset, int price, int volume, ptime start, ptime end);
 
-    void pre_execute() { order_pool_.orders.clear(); }
+    const Order &close(int broker_id, int asset, double price);
+    const Order &close(int broker_id, int asset, std::shared_ptr<GenericPriceEvaluator> price_eval);
+
+    // Use today's open as target price. Only TOTAL_FRACTION of total total_wealth will be allocated
+    // to reserving for fee.
+    template <int UNIT = 1, double TOTAL_FRACTION = 0.99>
+    void adjust_to_weight_target(int broker_id, VecArrXd w, VecArrXd p = VecArrXd());
+
+    void pre_execute() {
+        order_pool_.orders.clear();
+        ++time_index_;
+    }
     const auto &execute() {
         pre_execute();
         run();
@@ -33,19 +59,29 @@ class GenericStrategy {
     }
     virtual void run() = 0;
 
-    const auto &positions() const { return broker_agg_->positions(); }
-    const auto &position(int broker) const { return positions()[broker]; }
-    auto position(int broker, int asset) const { return position(broker)->coeff(asset); }
-    const auto &values() const { return broker_agg_->values(); }
+    int assets(int broker) const { return broker_agg_->assets(broker); }
+    double wealth(int broker) const { return broker_agg_->wealth(broker); }
+    double cash(int broker) const { return broker_agg_->cash(broker); };
+
+    const VecArrXi &positions(int broker) const;
+    int position(int broker, int asset) const;
+
+    const VecArrXd &values(int broker) const;
+    double value(int broker, int asset) const;
+
+    const VecArrXd &profits(int broker) const;
+    double profit(int broker, int asset) const;
+
+    const auto &portfolio_items(int broker) const;
+
+    int time_index() const { return time_index_; }
 
   private:
+    int time_index_ = 0;
+
     Cerebro *cerebro_;
     feeds::FeedsAggragator *feed_agg_;
     broker::BrokerAggragator *broker_agg_;
-
-    // std::vector<FullAssetData> *data_;
-    // std::vector<VecArrXi *> position_;
-    // std::vector<VecArrXd *> value_;
 
     OrderPool order_pool_;
 };
@@ -56,16 +92,90 @@ inline void GenericStrategy::init_strategy(feeds::FeedsAggragator *feed_agg,
     broker_agg_ = broker_agg;
 }
 
-const Order &GenericStrategy::buy(int broker_id, int asset, double price, int volume) {
-    fmt::print("new order.\n");
+#define BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(name, type, vectype)                                  \
+    inline const vectype &GenericStrategy::name##s(int broker) const {                             \
+        return broker_agg_->name##s(broker);                                                       \
+    }                                                                                              \
+    inline type GenericStrategy::name(int broker, int asset) const {                               \
+        return broker_agg_->name##s(broker).coeff(asset);                                          \
+    }
+BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(position, int, VecArrXi)
+BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(value, double, VecArrXd)
+BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(profit, double, VecArrXd)
+#undef BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR
+
+const auto &backtradercpp::strategy::GenericStrategy::portfolio_items(int broker) const {
+    return broker_agg_->portfolio(broker).portfolio_items;
+}
+
+const Order &GenericStrategy::buy(int broker_id, int asset, double price, int volume,
+                                  date_duration til_start_d, time_duration til_start_t,
+                                  date_duration start_to_end_d, time_duration start_to_end_t) {
     Order order{.broker_id = broker_id,
                 .asset = asset,
                 .price = price,
                 .volume = volume,
-                .valid_from = time(),
-                .valid_until = time() + hours(23)};
+                .created_at = time(),
+                .valid_from = time() + til_start_d + til_start_t,
+                .valid_until =
+                    time() + til_start_d + til_start_t + start_to_end_d + start_to_end_t};
     order_pool_.orders.emplace_back(std::move(order));
     return order_pool_.orders.back();
 }
+const Order &GenericStrategy::buy(int broker_id, int asset,
+                                  std::shared_ptr<GenericPriceEvaluator> price_eval, int volume,
+                                  date_duration til_start_d, time_duration til_start_t,
+                                  date_duration start_to_end_d, time_duration start_to_end_t) {
+    Order order{.broker_id = broker_id,
+                .asset = asset,
+                .volume = volume,
+                .price_eval = price_eval,
+                .created_at = time(),
+                .valid_from = time() + til_start_d + til_start_t,
+                .valid_until =
+                    time() + til_start_d + til_start_t + start_to_end_d + start_to_end_t};
+    order_pool_.orders.emplace_back(std::move(order));
+    return order_pool_.orders.back();
+}
+const Order &GenericStrategy::delayed_buy(int broker_id, int asset, double price, int volume,
+                                          date_duration til_start_d, time_duration til_start_t,
+                                          date_duration start_to_end_d,
+                                          time_duration start_to_end_t) {
+    return buy(broker_id, asset, price, volume, til_start_d, til_start_t, start_to_end_d,
+               start_to_end_t);
+}
+const Order &GenericStrategy::delayed_buy(int broker_id, int asset,
+                                          std::shared_ptr<GenericPriceEvaluator> price_eval,
+                                          int volume, date_duration til_start_d,
+                                          time_duration til_start_t, date_duration start_to_end_d,
+                                          time_duration start_to_end_t) {
+    return buy(broker_id, asset, price_eval, volume, til_start_d, til_start_t, start_to_end_d,
+               start_to_end_t);
+}
+inline const Order &GenericStrategy::close(int broker_id, int asset, double price) {
+    return delayed_buy(broker_id, asset, price, position(broker_id, asset));
+}
+inline const backtradercpp::Order &
+backtradercpp::strategy::GenericStrategy::close(int broker_id, int asset,
+                                                std::shared_ptr<GenericPriceEvaluator> price_eval) {
+    return delayed_buy(broker_id, asset, price_eval, -position(broker_id, asset));
+}
+
+template <int UNIT, double TOTAL_FRACTION>
+void GenericStrategy::adjust_to_weight_target(int broker_id, VecArrXd w, VecArrXd p) {
+    VecArrXd target_prices = data(broker_id).open();
+    if (p.size() != 0) {
+        target_prices = p;
+    }
+    VecArrXd target_value = wealth(broker_id) * TOTAL_FRACTION * w;
+    VecArrXi target_volume = (target_value / (target_prices * UNIT)).cast<int>();
+    VecArrXi volume_diff = target_volume - positions(broker_id);
+    for (int i = 0; i < volume_diff.size(); ++i) {
+        if (data(broker_id).valid().coeff(i) && (volume_diff.coeff(i) != 0)) {
+            std::cout << "New order" << std::endl;
+            buy(broker_id, i, target_prices.coeff(i), volume_diff.coeff(i));
+        }
+    }
+};
 } // namespace strategy
 } // namespace backtradercpp
