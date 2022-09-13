@@ -20,11 +20,15 @@ See `vs_examples`.
 
 ### Equal weight strategy
 
+Use a weight vector to specify target asset value weights. Today's **open** will be used to calculate target volumes. `adjust_to_weight_target` is especially usefull for maching learning type strategies.
+
 ```
 ![[vs_examples/equal_weight/equal_weight.cpp]]
 ```
 
-### Stop on loss and profit
+### A directory of CSVs and stop on loss or profit
+
+Here each csv represents an asset. It contains time, open, high, low, close.
 
 ```
 ![[vs_examples/delayed_buy/delayed_buy.cpp]]
