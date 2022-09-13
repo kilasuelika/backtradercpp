@@ -10,46 +10,37 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[      6630,        170]
-NotebookOptionsPosition[      5143,        135]
-NotebookOutlinePosition[      5581,        152]
-CellTagsIndexPosition[      5538,        149]
+NotebookDataLength[     11266,        232]
+NotebookOptionsPosition[     10021,        202]
+NotebookOutlinePosition[     10433,        218]
+CellTagsIndexPosition[     10390,        215]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
 Notebook[{
 Cell[BoxData[{
  RowBox[{
-  RowBox[{
-   RowBox[{"SetDirectory", "[", 
-    RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";"}], 
-  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+  RowBox[{"SetDirectory", "[", 
+   RowBox[{"NotebookDirectory", "[", "]"}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"file", "=", 
    RowBox[{"Import", "[", 
     RowBox[{"\"\<ReadMe-template.md\>\"", ",", "\"\<text\>\""}], "]"}]}], 
-  ";"}], "\[IndentingNewLine]"}], "Input",
- CellChangeTimes->{{3.8718018288903627`*^9, 3.871801893681295*^9}},
- CellLabel->"In[1]:=",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
-
-Cell[CellGroupData[{
-
-Cell[BoxData["file"], "Input",
- CellChangeTimes->{{3.871801900567988*^9, 3.8718019018341618`*^9}},
- CellLabel->"In[3]:=",ExpressionUUID->"127d9a5f-3c08-42d1-9686-f33fd58c6283"],
-
-Cell[BoxData["\<\"# backtradercpp \
-\[DownExclamation]\.aa\[DownExclamation]\.aa A header-only C++ 20 back \
-testing library\\n\\nAs the name suggests, this library is partially inspired \
-by `backtrader` of python. However `backtrader` constantly made me confusing \
-so I decide to write my own library.\\n\\n## Example\\nSee \
-`vs_examples`.\\n### Most basic \
-example\\n\\n```cpp\\n![[vs_examples/basic_1/basic_1.cpp]]\\n```\\n\\n## Code \
-Structure\\n1. Generic(FeedData) -> FeedAggragator(FullAssetData)\"\>"], \
-"Output",
- CellChangeTimes->{3.8718019035201964`*^9},
- CellLabel->"Out[3]=",ExpressionUUID->"851fcb68-1aab-4ece-ac4c-68cf6f143cd6"]
-}, Open  ]],
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"WriteString", "[", 
+  RowBox[{"\"\<ReadMe.md\>\"", ",", 
+   RowBox[{"StringReplace", "[", 
+    RowBox[{"file", ",", 
+     RowBox[{
+      RowBox[{"\"\<![[\>\"", "~~", 
+       RowBox[{"Shortest", "[", "x__", "]"}], "~~", "\"\<]]\>\""}], ":>", 
+      RowBox[{"Import", "[", 
+       RowBox[{"x", ",", "\"\<Text\>\""}], "]"}]}]}], "]"}]}], 
+  "]"}], "\[IndentingNewLine]"}], "Input",
+ CellChangeTimes->{{3.8718018288903627`*^9, 3.871801893681295*^9}, {
+   3.872059129467784*^9, 3.8720591816977444`*^9}, 3.8720592669936466`*^9},
+ CellLabel->"In[13]:=",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
 
 Cell[CellGroupData[{
 
@@ -117,23 +108,98 @@ Cell[CellGroupData[{
 
 Cell[BoxData[
  RowBox[{"StringReplace", "[", 
-  RowBox[{"\"\<xx![[f]] [[j]]\>\"", ",", 
+  RowBox[{"file", ",", 
    RowBox[{
     RowBox[{"\"\<![[\>\"", "~~", 
-     RowBox[{"Shortest", "[", "x__", "]"}], "~~", "\"\<]]\>\""}], "->", 
-    "x"}]}], "]"}]], "Input",
+     RowBox[{"Shortest", "[", "x__", "]"}], "~~", "\"\<]]\>\""}], ":>", 
+    RowBox[{"Import", "[", 
+     RowBox[{"x", ",", "\"\<Text\>\""}], "]"}]}]}], "]"}]], "Input",
  CellChangeTimes->{{3.871802998297973*^9, 3.8718030345497026`*^9}, {
   3.8718030667127943`*^9, 3.871803076757267*^9}, {3.8718031652940054`*^9, 
-  3.8718031707804356`*^9}},
- CellLabel->"In[43]:=",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
+  3.8718031707804356`*^9}, {3.8720591997178416`*^9, 3.8720592009575615`*^9}, {
+  3.872059243581193*^9, 3.8720592548752327`*^9}},
+ CellLabel->"In[6]:=",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
 
-Cell[BoxData["\<\"xxf [[j]]\"\>"], "Output",
+Cell[BoxData["\<\"# backtradercpp -- A header-only C++ 20 back testing \
+library\\n\\nAs the name suggests, this library is partially inspired by \
+`backtrader` of python. However `backtrader` constantly made me confusing so \
+I decide to write my own library.\\n\\n## Install\\nIt's a header only \
+library. However you need to install some dependencies. On \
+windows:\\n```\\n./vcpkg install boost:x64-windows eigen3:x64-windows \
+fmt:x64-windows\\n```\\n\\n\\n## Example\\nSee `vs_examples`.\\n\\n### Most \
+basic example\\n\\n```cpp\\n#include <iostream>\\n#include \
+\\\"../../include/backtradercpp/Cerebro.hpp\\\"\\nusing namespace \
+backtradercpp;\\nusing namespace std;\\n\\nstruct SimpleStrategy : \
+strategy::GenericStrategy {\\n    void run() override {\\n        // Buy \
+assets at 5th day.\\n        if (i == 5) {\\n            for (int j = 0; j < \
+data(0).assets(); ++j) {\\n                if (data(0).valid(-1, j)) {\\n     \
+               // Buy 10 asset j at the price of latest day(-1) on the broker \
+0.\\n                    buy(0, j, data(0).open(-1, j), 10);\\n               \
+ }\\n            }\\n        }\\n        ++i;\\n    }\\n\\n    int i = \
+1;\\n};\\nint main() {\\n    Cerebro cerebro;\\n    // non_delimit_date is a \
+function that convert date string like \\\"20200101\\\" to standard \
+format.\\n    //  0.0005 and 0.001 are commission rate for long and short \
+trading.\\n    cerebro.add_data(\\n        \
+std::make_shared<feeds::CSVTabularData>(\\\"../../example_data/CSVTabular/\
+djia.csv\\\",\\n                                                \
+feeds::TimeStrConv::non_delimited_date),\\n        \
+std::make_shared<broker::Broker>(0.0005, 0.001),);\\n    \
+cerebro.set_strategy(std::make_shared<SimpleStrategy>());\\n    \
+cerebro.run();\\n}\\n```\\n\\n### Equal weight strategy\\n\\n```\\n#include \
+\\\"../../include/backtradercpp/Cerebro.hpp\\\"\\nusing namespace \
+backtradercpp;\\n\\nstruct EqualWeightStrategy : strategy::GenericStrategy \
+{\\n    void run() override {\\n        // Re-adjust to equal weigh each 30 \
+trading days.\\n        if (time_index() % 30 == 0) {\\n            \
+adjust_to_weight_target(0, VecArrXd::Constant(assets(0), 1. / assets(0)));\\n \
+       }\\n    }\\n};\\n\\nint main() {\\n    Cerebro cerebro;\\n    \
+cerebro.add_data(\\n        \
+std::make_shared<feeds::CSVTabularData>(\\\"../../example_data/CSVTabular/\
+djia.csv\\\",\\n                                                \
+feeds::TimeStrConv::delimited_date),\\n        \
+std::make_shared<broker::Broker>(10000, 0.0005, 0.001), 2); // 2 for \
+window\\n    \
+cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());\\n    \
+cerebro.run();\\n}\\n```\\n\\n### Stop on loss and profit\\n\\n```\\n#include \
+\\\"../../include/backtradercpp/Cerebro.hpp\\\"\\nusing namespace \
+backtradercpp;\\n\\nstruct SimpleStrategy : strategy::GenericStrategy {\\n    \
+void run() override {\\n        // Do nothing at initial 30 days.\\n        \
+if (time_index() < 30) {\\n            return;\\n        }\\n        // If \
+daily return larger than 0.05, then buy.\\n        for (int j = 0; j < \
+data(0).assets(); ++j) {\\n            if (data(0).valid(-1, j)) {\\n         \
+       double p = data(0).close(-1, j), old_p = data(0).close(-2, j);\\n      \
+          if ((old_p > 0) && ((p / old_p) > 1.05))\\n                    // \
+Issue an order of buy at the price of open on next day.\\n                    \
+delayed_buy(0, j, EvalOpen::exact(), 10);\\n            }\\n        }\\n      \
+  // Sell on broker 0 if profits or loss reaching target.\\n        // Price \
+is open of next day.\\n        for (const auto &[asset, item] : \
+portfolio_items(0)) {\\n            if (item.profit > 1500 || item.profit < \
+-1000) {\\n                close(0, asset, EvalOpen::exact());\\n            \
+}\\n        }\\n    }\\n};\\n\\nint main() {\\n    Cerebro cerebro;\\n\\n    \
+cerebro.add_data(\\n        \
+std::make_shared<feeds::CSVTabularData>(\\\"../../example_data/CSVTabular/\
+djia.csv\\\",\\n                                                \
+feeds::TimeStrConv::non_delimited_date),\\n        \
+std::make_shared<broker::Broker>(10000, 0.0005, 0.001), 2); // 2 for \
+window\\n    cerebro.set_strategy(std::make_shared<SimpleStrategy>());\\n    \
+cerebro.run();\\n}\\n```\\n\\n## Important Notes\\n\\n1. Please use \
+**backward adjusted** data (keep oldest value fixed and adjust following \
+data). When you buy, use **raw price**. I developed an algorithm to deal with \
+backward adjusted data. The core idea is to track the profits under raw price \
+(profti) and adjusted price (dyn_adj_profit). Then the differen `adj_profit - \
+profit` is profits due to external factors. Total wealth will \
+be\\n```\\ntotal wealth = cash + asset value under raw price + \
+(dyn_adj_profit - profit)\\n```\\nWhen you sell, a propotion of difference \
+`dyn_adj_profit - profit` will be added to your cash.\\n\\nDue to forward \
+adjuted prices (keep newest price fixed and adjust older data) may be \
+negative, I'm not sure if my algorithm will work at this case.\\n## Code \
+Structure\\n1. Generic(FeedData) -> FeedAggragator(FullAssetData)\"\>"], \
+"Output",
  CellChangeTimes->{{3.87180301137361*^9, 3.871803036431075*^9}, 
-   3.8718030775959935`*^9, 3.871803171171974*^9},
- CellLabel->"Out[43]=",ExpressionUUID->"a8b66e3f-3314-427a-aff1-2952b2507bbc"]
+   3.8718030775959935`*^9, 3.871803171171974*^9, 3.87205920156965*^9, 
+   3.872059255787012*^9},
+ CellLabel->"Out[6]=",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
 }, Open  ]]
 },
-WindowSize->{Full, Full},
 WindowMargins->{{
   Automatic, 178.20000000000005`}, {-37.799999999999955`, Automatic}},
 FrontEndVersion->"13.1 for Microsoft Windows (64-bit) (June 16, 2022)",
@@ -151,26 +217,22 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[558, 20, 504, 12, 94, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
+Cell[558, 20, 922, 22, 192, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
 Cell[CellGroupData[{
-Cell[1087, 36, 176, 2, 31, "Input",ExpressionUUID->"127d9a5f-3c08-42d1-9686-f33fd58c6283"],
-Cell[1266, 40, 649, 10, 329, "Output",ExpressionUUID->"851fcb68-1aab-4ece-ac4c-68cf6f143cd6"]
+Cell[1505, 46, 610, 12, 52, "Input",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
+Cell[2118, 60, 269, 3, 35, "Output",ExpressionUUID->"e505a1de-4afd-4873-b02b-3eae078a8318"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[1952, 55, 610, 12, 31, "Input",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
-Cell[2565, 69, 269, 3, 35, "Output",ExpressionUUID->"e505a1de-4afd-4873-b02b-3eae078a8318"]
+Cell[2424, 68, 378, 8, 52, "Input",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
+Cell[2805, 78, 267, 4, 35, "Output",ExpressionUUID->"b339e5ed-e434-440b-a9d7-57db084c7df9"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[2871, 77, 378, 8, 31, "Input",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
-Cell[3252, 87, 267, 4, 35, "Output",ExpressionUUID->"b339e5ed-e434-440b-a9d7-57db084c7df9"]
+Cell[3109, 87, 512, 10, 52, "Input",ExpressionUUID->"a800a422-bd43-4d94-8c0f-0d4d9e801afa"],
+Cell[3624, 99, 291, 4, 35, "Output",ExpressionUUID->"59798f74-cc23-4be0-b384-ec63bd39a48f"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[3556, 96, 512, 10, 31, "Input",ExpressionUUID->"a800a422-bd43-4d94-8c0f-0d4d9e801afa"],
-Cell[4071, 108, 291, 4, 35, "Output",ExpressionUUID->"59798f74-cc23-4be0-b384-ec63bd39a48f"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[4399, 117, 487, 10, 32, "Input",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
-Cell[4889, 129, 238, 3, 59, "Output",ExpressionUUID->"a8b66e3f-3314-427a-aff1-2952b2507bbc"]
+Cell[3952, 108, 636, 12, 53, "Input",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
+Cell[4591, 122, 5414, 77, 3657, "Output",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
 }, Open  ]]
 }
 ]

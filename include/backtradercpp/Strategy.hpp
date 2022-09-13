@@ -15,7 +15,7 @@ class GenericStrategy {
   public:
     const auto &time() const { return feed_agg_->time(); }
     const std::vector<FullAssetData> &datas() const { return feed_agg_->datas(); }
-    const FullAssetData &data(int i) const { return datas()[i]; }
+    const FullAssetData &data(int broker) const { return datas()[broker]; }
     virtual void init_strategy(feeds::FeedsAggragator *feed_agg,
                                broker::BrokerAggragator *broker_agg);
 
@@ -172,7 +172,6 @@ void GenericStrategy::adjust_to_weight_target(int broker_id, VecArrXd w, VecArrX
     VecArrXi volume_diff = target_volume - positions(broker_id);
     for (int i = 0; i < volume_diff.size(); ++i) {
         if (data(broker_id).valid().coeff(i) && (volume_diff.coeff(i) != 0)) {
-            std::cout << "New order" << std::endl;
             buy(broker_id, i, target_prices.coeff(i), volume_diff.coeff(i));
         }
     }
