@@ -10,14 +10,16 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     11266,        232]
-NotebookOptionsPosition[     10021,        202]
-NotebookOutlinePosition[     10433,        218]
-CellTagsIndexPosition[     10390,        215]
+NotebookDataLength[     12685,        264]
+NotebookOptionsPosition[     11309,        232]
+NotebookOutlinePosition[     11751,        249]
+CellTagsIndexPosition[     11708,        246]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
 Notebook[{
+
+Cell[CellGroupData[{
 Cell[BoxData[{
  RowBox[{
   RowBox[{"SetDirectory", "[", 
@@ -27,6 +29,9 @@ Cell[BoxData[{
   RowBox[{"file", "=", 
    RowBox[{"Import", "[", 
     RowBox[{"\"\<ReadMe-template.md\>\"", ",", "\"\<text\>\""}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"DeleteFile", "[", "\"\<ReadMe.md\>\"", "]"}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{"WriteString", "[", 
   RowBox[{"\"\<ReadMe.md\>\"", ",", 
@@ -39,48 +44,73 @@ Cell[BoxData[{
        RowBox[{"x", ",", "\"\<Text\>\""}], "]"}]}]}], "]"}]}], 
   "]"}], "\[IndentingNewLine]"}], "Input",
  CellChangeTimes->{{3.8718018288903627`*^9, 3.871801893681295*^9}, {
-   3.872059129467784*^9, 3.8720591816977444`*^9}, 3.8720592669936466`*^9},
- CellLabel->"In[13]:=",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
-
-Cell[CellGroupData[{
+   3.872059129467784*^9, 3.8720591816977444`*^9}, 3.8720592669936466`*^9, {
+   3.8720615094543743`*^9, 3.8720615259160323`*^9}, 3.872061730659523*^9, 
+   3.8720621424253564`*^9, {3.8720622017147784`*^9, 
+   3.8720622060740547`*^9}},ExpressionUUID->"92ae036a-e4cd-42b7-81dc-\
+731365bc4de5"],
 
 Cell[BoxData[
- RowBox[{"StringReplace", "[", 
-  RowBox[{"\"\<xx![[ff]]\>\"", ",", 
-   RowBox[{"{", 
-    RowBox[{
-     RowBox[{
-     "RegularExpression", "[", "\"\<\\\\!\\\\[\\\\[(^\\\\]+)\\\\]\\\\]\>\"", 
-      "]"}], "->", "\"\<\>\""}], "}"}]}], "]"}]], "Input",
+ TemplateBox[{
+  "DeleteFile", "fdnfnd", 
+   "\"Directory or file \
+\\\"\\!\\(\\*RowBox[{\\\"\\\\\\\"D:\\\\\\\\\\\\\\\\Connect\\\\\\\\\\\\\\\\PT\\\
+\\\\\\\\\\\\\\Projects\\\\\\\\\\\\\\\\backtradercpp\\\\\\\\\\\\\\\\ReadMe.md\\\
+\\\\\"\\\"}]\\)\\\" not found.\"", 2, 3, 1, 32981310031698889265, "Local"},
+  "MessageTemplate"]], "Message", "MSG",
+ CellChangeTimes->{3.8720615291899014`*^9, 3.87206162823808*^9, 
+  3.872061733077834*^9, 3.8720617698705187`*^9, 3.8720619440887284`*^9, 
+  3.872062164656495*^9},
+ CellLabel->
+  "During evaluation of \
+In[1]:=",ExpressionUUID->"97079a00-9963-4ea8-b83e-ccd171a1f876"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{"DeleteFile", "[", "\"\<Test.md\>\"", "]"}]], "Input",
  CellChangeTimes->{{3.8718019898680305`*^9, 3.8718020466406555`*^9}, {
   3.8718020774225683`*^9, 3.871802098787753*^9}, {3.8718021539705143`*^9, 
   3.87180221830661*^9}, {3.871802269273806*^9, 3.8718022916847935`*^9}, {
-  3.871802366435565*^9, 3.871802377713797*^9}},
- CellLabel->"In[19]:=",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
-
-Cell[BoxData["\<\"xx![[ff]]\"\>"], "Output",
- CellChangeTimes->{{3.8718022014810286`*^9, 3.8718022190068827`*^9}, {
-   3.871802270093628*^9, 3.8718022924101343`*^9}, 3.8718023786389494`*^9},
- CellLabel->"Out[19]=",ExpressionUUID->"e505a1de-4afd-4873-b02b-3eae078a8318"]
-}, Open  ]],
+  3.871802366435565*^9, 3.871802377713797*^9}, {3.872061812624302*^9, 
+  3.872061819699331*^9}, {3.872062003798108*^9, 3.872062021672909*^9}, {
+  3.872062218256564*^9, 3.8720622691368876`*^9}},
+ CellLabel->"In[7]:=",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
 
 Cell[CellGroupData[{
 
 Cell[BoxData[
- RowBox[{"StringReplace", "[", 
-  RowBox[{"\"\<xx![[f]]\>\"", ",", 
-   RowBox[{"{", 
-    RowBox[{
-     RowBox[{"RegularExpression", "[", "\"\<\\\\!\\\\[\>\"", "]"}], "->", 
-     "\"\<\>\""}], "}"}]}], "]"}]], "Input",
- CellChangeTimes->{{3.871802198473812*^9, 3.8718022272414618`*^9}},
- CellLabel->"In[16]:=",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
+ RowBox[{
+  RowBox[{"DeleteFile", "[", 
+   RowBox[{"FileNameJoin", "[", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"NotebookDirectory", "[", "]"}], ",", "\"\<ReadMe.md\>\""}], 
+     "}"}], "]"}], "]"}], ";", 
+  RowBox[{"FileNames", "[", "\"\<ReadMe.md\>\"", "]"}]}]], "Input",
+ CellChangeTimes->{{3.871802198473812*^9, 3.8718022272414618`*^9}, {
+  3.872061834898326*^9, 3.872061849744584*^9}, {3.872062092777937*^9, 
+  3.8720621275027895`*^9}},
+ CellLabel->"In[8]:=",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
 
-Cell[BoxData["\<\"xx[f]]\"\>"], "Output",
- CellChangeTimes->{
-  3.871802046978233*^9, {3.871802085922821*^9, 3.8718021061089735`*^9}, {
-   3.8718021569443636`*^9, 3.8718022279271545`*^9}},
- CellLabel->"Out[16]=",ExpressionUUID->"b339e5ed-e434-440b-a9d7-57db084c7df9"]
+Cell[BoxData[
+ TemplateBox[{
+  "DeleteFile", "ioarg", 
+   "\"I/O operation is not valid for \
+\\!\\(\\*RowBox[{\\\"\\\\\\\"D:\\\\\\\\\\\\\\\\Connect\\\\\\\\\\\\\\\\PT\\\\\\\
+\\\\\\\\\\Projects\\\\\\\\\\\\\\\\backtradercpp\\\\\\\\\\\\\\\\ReadMe.md\\\\\\\
+\"\\\"}]\\).\"", 2, 8, 5, 32981308943965670982, "Local"},
+  "MessageTemplate"]], "Message", "MSG",
+ CellChangeTimes->{{3.8720618368259335`*^9, 3.872061872340531*^9}, {
+  3.872062111671285*^9, 3.8720621311600657`*^9}},
+ CellLabel->
+  "During evaluation of \
+In[8]:=",ExpressionUUID->"20dd8047-3b54-4d80-b9bb-367636db0350"],
+
+Cell[BoxData[
+ RowBox[{"{", "\<\"ReadMe.md\"\>", "}"}]], "Output",
+ CellChangeTimes->{{3.872061851756673*^9, 3.8720618723505306`*^9}, {
+  3.8720621117313576`*^9, 3.872062131171996*^9}},
+ CellLabel->"Out[8]=",ExpressionUUID->"9ad4d9a2-5ea1-447a-b4c0-5ecd66c94e1a"]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -200,8 +230,9 @@ Structure\\n1. Generic(FeedData) -> FeedAggragator(FullAssetData)\"\>"], \
  CellLabel->"Out[6]=",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
 }, Open  ]]
 },
-WindowMargins->{{
-  Automatic, 178.20000000000005`}, {-37.799999999999955`, Automatic}},
+WindowSize->{582.6, 524.4},
+WindowMargins->{{0, Automatic}, {Automatic, 0}},
+TaggingRules-><|"TryRealOnly" -> False|>,
 FrontEndVersion->"13.1 for Microsoft Windows (64-bit) (June 16, 2022)",
 StyleDefinitions->"Default.nb",
 ExpressionUUID->"bff269f8-6d5f-4463-b77e-3edf2af498d6"
@@ -217,22 +248,23 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[558, 20, 922, 22, 192, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
 Cell[CellGroupData[{
-Cell[1505, 46, 610, 12, 52, "Input",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
-Cell[2118, 60, 269, 3, 35, "Output",ExpressionUUID->"e505a1de-4afd-4873-b02b-3eae078a8318"]
+Cell[580, 22, 1159, 28, 158, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
+Cell[1742, 52, 625, 13, 51, "Message",ExpressionUUID->"97079a00-9963-4ea8-b83e-ccd171a1f876"]
+}, Open  ]],
+Cell[2382, 68, 569, 8, 31, "Input",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
+Cell[CellGroupData[{
+Cell[2976, 80, 540, 12, 73, "Input",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
+Cell[3519, 94, 575, 12, 51, "Message",ExpressionUUID->"20dd8047-3b54-4d80-b9bb-367636db0350"],
+Cell[4097, 108, 263, 4, 35, "Output",ExpressionUUID->"9ad4d9a2-5ea1-447a-b4c0-5ecd66c94e1a"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[2424, 68, 378, 8, 52, "Input",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
-Cell[2805, 78, 267, 4, 35, "Output",ExpressionUUID->"b339e5ed-e434-440b-a9d7-57db084c7df9"]
+Cell[4397, 117, 512, 10, 52, "Input",ExpressionUUID->"a800a422-bd43-4d94-8c0f-0d4d9e801afa"],
+Cell[4912, 129, 291, 4, 35, "Output",ExpressionUUID->"59798f74-cc23-4be0-b384-ec63bd39a48f"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[3109, 87, 512, 10, 52, "Input",ExpressionUUID->"a800a422-bd43-4d94-8c0f-0d4d9e801afa"],
-Cell[3624, 99, 291, 4, 35, "Output",ExpressionUUID->"59798f74-cc23-4be0-b384-ec63bd39a48f"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[3952, 108, 636, 12, 53, "Input",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
-Cell[4591, 122, 5414, 77, 3657, "Output",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
+Cell[5240, 138, 636, 12, 53, "Input",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
+Cell[5879, 152, 5414, 77, 3657, "Output",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
 }, Open  ]]
 }
 ]
