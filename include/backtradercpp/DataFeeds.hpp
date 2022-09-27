@@ -15,7 +15,7 @@
 
 namespace backtradercpp {
 namespace feeds {
-// CSVTabularData: A single matrix that contains multiple assets and only one type price. At this
+// CSVTabularDataImpl: A single matrix that contains multiple assets and only one type price. At this
 // case, OHLC are the same value and valume are implicitly very large.
 // time_converter: convert a time string to standard format: 2020-01-01 01:00:00
 
@@ -40,11 +40,15 @@ struct TimeStrConv {
 };
 
 class FeedsAggragator;
-class GenericData {
+
+class GenericDataImpl {
 
   public:
-    GenericData() = default;
-    GenericData(TimeStrConv::func_type time_converter) : time_converter_(time_converter){};
+    GenericDataImpl() = default;
+
+    GenericDataImpl(TimeStrConv::func_type time_converter)
+        : time_converter_(time_converter) {
+    };
     virtual bool read() = 0; // Update next_row_;
 
     virtual FeedData get_and_read() {
@@ -74,13 +78,14 @@ struct CSVRowParaser {
 
     static double parse_double(const std::string &ele);
 };
-class CSVTabularData : public GenericData {
+
+class CSVTabularDataImpl : public GenericDataImpl {
   public:
-    CSVTabularData(const std::string &raw_data_file,
-                   TimeStrConv::func_type time_converter = nullptr);
+    CSVTabularDataImpl(const std::string &raw_data_file,
+                       TimeStrConv::func_type time_converter = nullptr);
     // You have to ensure that two file have the same rows.
-    CSVTabularData(const std::string &raw_data_file, const std::string &adjusted_data_file,
-                   TimeStrConv::func_type time_converter = nullptr);
+    CSVTabularDataImpl(const std::string &raw_data_file, const std::string &adjusted_data_file,
+                       TimeStrConv::func_type time_converter = nullptr);
     bool read() override;
     void init();
 
@@ -91,15 +96,15 @@ class CSVTabularData : public GenericData {
     std::string next_row_, adj_next_row_;
 };
 
-class CSVDirectoryData : public GenericData {
+class CSVDirectoryDataImpl : public GenericDataImpl {
   public:
     // tohlc_map: column number of time, open, high, low, close
-    CSVDirectoryData(const std::string &raw_data_dir,
-                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
-                     TimeStrConv::func_type time_converter = nullptr);
-    CSVDirectoryData(const std::string &raw_data_dir, const std::string &adj_data_dir,
-                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
-                     TimeStrConv::func_type time_converter = nullptr);
+    CSVDirectoryDataImpl(const std::string &raw_data_dir,
+                         std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                         TimeStrConv::func_type time_converter = nullptr);
+    CSVDirectoryDataImpl(const std::string &raw_data_dir, const std::string &adj_data_dir,
+                         std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                         TimeStrConv::func_type time_converter = nullptr);
     bool read() override;
 
   private:
@@ -120,14 +125,69 @@ class CSVDirectoryData : public GenericData {
     enum State { Valid, Invalid, Finished };
     std::vector<State> status; // Track if data in each file has been readed.
 };
+
+struct CSVTabularData {
+    std::shared_ptr<CSVTabularDataImpl> sp;
+
+    CSVTabularData(const std::string &raw_data_file,
+                   TimeStrConv::func_type time_converter = nullptr)
+        : sp(std::make_shared<CSVTabularDataImpl>(raw_data_file, time_converter)) {
+    }
+    // You have to ensure that two file have the same rows.
+    CSVTabularData(const std::string &raw_data_file, const std::string &adjusted_data_file,
+                   TimeStrConv::func_type time_converter =
+                       nullptr)
+        : sp(std::make_shared<CSVTabularDataImpl>(raw_data_file, adjusted_data_file,
+                                                  time_converter)) {
+    }
+
+    bool read() { return sp->read(); }
+};
+
+struct CSVDirectoryData {
+    std::shared_ptr<CSVDirectoryDataImpl> sp;
+
+    CSVDirectoryData(const std::string &raw_data_dir,
+                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                     TimeStrConv::func_type time_converter = nullptr)
+        : sp(std::make_shared<CSVDirectoryDataImpl>(raw_data_dir, tohlc_map, time_converter)) {
+    }
+    CSVDirectoryData(const std::string &raw_data_dir, const std::string &adj_data_dir,
+                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                     TimeStrConv::func_type time_converter = nullptr)
+        : sp(std::make_shared<CSVDirectoryDataImpl>(raw_data_dir, adj_data_dir, tohlc_map,
+                                                    time_converter)) {
+    }
+
+    bool read() { return sp->read(); }
+};
+
+struct GenericData {
+    std::shared_ptr<GenericDataImpl> sp;
+
+    GenericData(const CSVTabularData &data)
+        : sp(data.sp) {
+    }
+
+    GenericData(const CSVDirectoryData &data)
+        : sp(data.sp) {
+    }
+
+    bool read() { return sp->read(); }
+    FeedData *data_ptr() { return sp->data_ptr(); }
+    int assets() const { return sp->assets(); }
+};
+
+//-------------------------------------------------------------------
 class FeedsAggragator {
   public:
     FeedsAggragator() = default;
-    // FeedsAggragator(const std::vector<std::shared_ptr<feeds::GenericData>> &);
+    // FeedsAggragator(const std::vector<std::shared_ptr<feeds::GenericDataImpl>> &);
+    const std::vector<std::string> &codes(int i) const { return feeds_[i].sp->codes_; }
     const std::vector<FullAssetData> &datas() const { return data_; }
     const auto &datas_valid() const { return datas_valid_; }
     const FullAssetData &data(int i) const { return data_[i]; }
-    void add_feed(std::shared_ptr<feeds::GenericData> feed);
+    void add_feed(const GenericData &feed);
     void init();
     auto finished() const { return finished_; }
     bool read();
@@ -138,7 +198,7 @@ class FeedsAggragator {
     int set_window(int src, int window) { data_[src].set_window(window); };
 
   private:
-    std::vector<std::shared_ptr<feeds::GenericData>> feeds_;
+    std::vector<GenericData> feeds_;
     std::vector<FeedData *> next_;
     std::vector<FullAssetData> data_;
     VecArrXi datas_valid_;
@@ -174,23 +234,26 @@ double backtradercpp::feeds::CSVRowParaser::parse_double(const std::string &ele)
     }
     return res;
 }
-CSVTabularData::CSVTabularData(const std::string &raw_data_file,
-                               TimeStrConv::func_type time_converter)
-    : GenericData(time_converter), raw_data_file_(raw_data_file), adj_data_file_(raw_data_file) {
+
+CSVTabularDataImpl::CSVTabularDataImpl(const std::string &raw_data_file,
+                                       TimeStrConv::func_type time_converter)
+    : GenericDataImpl(time_converter), raw_data_file_(raw_data_file),
+      adj_data_file_(raw_data_file) {
     backtradercpp::util::check_path_exists(raw_data_file);
     init();
 }
-CSVTabularData::CSVTabularData(const std::string &raw_data_file,
-                               const std::string &adjusted_data_file,
-                               TimeStrConv::func_type time_converter)
-    : GenericData(time_converter), raw_data_file_(raw_data_file),
+
+CSVTabularDataImpl::CSVTabularDataImpl(const std::string &raw_data_file,
+                                       const std::string &adjusted_data_file,
+                                       TimeStrConv::func_type time_converter)
+    : GenericDataImpl(time_converter), raw_data_file_(raw_data_file),
       adj_data_file_(adjusted_data_file) {
     backtradercpp::util::check_path_exists(raw_data_file);
     backtradercpp::util::check_path_exists(adjusted_data_file);
     init();
 }
 
-void CSVTabularData::init() {
+void CSVTabularDataImpl::init() {
 
     // Read header
     std::string header;
@@ -203,7 +266,9 @@ void CSVTabularData::init() {
     next_.resize(assets_);
     // read();
 }
-inline void CSVTabularData::cast_ohlc_data_(std::vector<std::string> &row_string, OHLCData &dest) {
+
+inline void CSVTabularDataImpl::cast_ohlc_data_(std::vector<std::string> &row_string,
+                                                OHLCData &dest) {
     for (int i = 0; i < assets_; ++i) {
         // dest.open.coeffRef(i) = std::numeric_limits<double>::quiet_NaN();
         dest.open.coeffRef(i) = 0;
@@ -214,7 +279,8 @@ inline void CSVTabularData::cast_ohlc_data_(std::vector<std::string> &row_string
     }
     dest.high = dest.low = dest.close = dest.open;
 };
-inline bool CSVTabularData::read() {
+
+inline bool CSVTabularDataImpl::read() {
     std::getline(raw_data_file_, next_row_);
     if (raw_data_file_.eof()) {
         finished_ = true;
@@ -237,9 +303,9 @@ inline bool CSVTabularData::read() {
 
 inline bool FeedsAggragator::read() {
     for (int i = 0; i < feeds_.size(); ++i) {
-        bool _get = feeds_[i]->read();
+        bool _get = feeds_[i].read();
         if (_get) {
-            data_[i].push_back(feeds_[i]->next_);
+            data_[i].push_back(feeds_[i].sp->next_);
         } else {
         }
         datas_valid_[i] = _get;
@@ -253,29 +319,31 @@ inline bool FeedsAggragator::read() {
 //     read();
 //     return data_;
 // }
-inline void FeedsAggragator::add_feed(std::shared_ptr<feeds::GenericData> feed) {
+inline void FeedsAggragator::add_feed(const GenericData &feed) {
     feeds_.push_back(feed);
-    next_.push_back(&(feed->next_));
-    data_.emplace_back(feed->next_);
+    next_.push_back(&(feed.sp->next_));
+    data_.emplace_back(feed.sp->next_);
     datas_valid_.resize(feeds_.size());
 }
 
-backtradercpp::feeds::CSVDirectoryData::CSVDirectoryData(const std::string &raw_data_dir,
-                                                         std::array<int, 5> tohlc_map,
-                                                         TimeStrConv::func_type time_converter)
-    : GenericData(time_converter), raw_data_dir(raw_data_dir), adj_data_dir(raw_data_dir),
+backtradercpp::feeds::CSVDirectoryDataImpl::CSVDirectoryDataImpl(const std::string &raw_data_dir,
+                                                                 std::array<int, 5> tohlc_map,
+                                                                 TimeStrConv::func_type time_converter)
+    : GenericDataImpl(time_converter), raw_data_dir(raw_data_dir), adj_data_dir(raw_data_dir),
       tohlc_map(tohlc_map) {
     init();
 }
-backtradercpp::feeds::CSVDirectoryData::CSVDirectoryData(const std::string &raw_data_dir,
-                                                         const std::string &adj_data_dir,
-                                                         std::array<int, 5> tohlc_map,
-                                                         TimeStrConv::func_type time_converter)
-    : GenericData(time_converter), raw_data_dir(raw_data_dir), adj_data_dir(adj_data_dir),
+
+backtradercpp::feeds::CSVDirectoryDataImpl::CSVDirectoryDataImpl(const std::string &raw_data_dir,
+                                                                 const std::string &adj_data_dir,
+                                                                 std::array<int, 5> tohlc_map,
+                                                                 TimeStrConv::func_type time_converter)
+    : GenericDataImpl(time_converter), raw_data_dir(raw_data_dir), adj_data_dir(adj_data_dir),
       tohlc_map(tohlc_map) {
     init();
 }
-void CSVDirectoryData::init() {
+
+void CSVDirectoryDataImpl::init() {
     for (const auto &entry : std::filesystem::directory_iterator(raw_data_dir)) {
         auto file_path = entry.path().filename();
         auto adj_file_path = std::filesystem::path(adj_data_dir) / file_path;
@@ -312,7 +380,7 @@ void CSVDirectoryData::init() {
     }
 }
 
-bool backtradercpp::feeds::CSVDirectoryData::read() {
+bool backtradercpp::feeds::CSVDirectoryDataImpl::read() {
 
     next_.reset();
     // read data.

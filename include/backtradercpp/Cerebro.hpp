@@ -2,13 +2,14 @@
 /*ZhouYao at 2022-09-10*/
 
 #include "DataFeeds.hpp"
-#include "Broker.hpp"
+#include "BrokerImpl.hpp"
 #include "Strategy.hpp"
 namespace backtradercpp {
 
 class Cerebro {
   public:
-    void add_data(std::shared_ptr<feeds::GenericData> data, std::shared_ptr<broker::Broker> broker,
+    void add_data(feeds::GenericData data,
+                  broker::Broker broker,
                   int window = 1);
     // void init_feeds_aggrator_();
     void set_strategy(std::shared_ptr<strategy::GenericStrategy> strategy);
@@ -25,14 +26,14 @@ class Cerebro {
     // strategy::FullAssetData data_;
 };
 
-void Cerebro::add_data(std::shared_ptr<feeds::GenericData> data,
-                       std::shared_ptr<broker::Broker> broker, int window) {
+void Cerebro::add_data(feeds::GenericData data,
+                       broker::Broker broker, int window) {
     feeds_agg_.add_feed(data);
     feeds_agg_.set_window(feeds_agg_.datas().size() - 1, window);
     broker_agg_.add_broker(broker);
 
-    broker->resize(data->assets());
-    broker->current_ = data->data_ptr();
+    broker.resize(data.assets());
+    broker.sp->current_ = data.data_ptr();
     // broker->
 }
 void Cerebro::set_strategy(std::shared_ptr<strategy::GenericStrategy> strategy) {
@@ -51,8 +52,28 @@ void Cerebro::run() {
         broker_agg_.process(order_pool);
         broker_agg_.update_info();
 
-        fmt::print("{}, total_wealth: {:12.4f}\n", to_simple_string(feeds_agg_.time()),
+        fmt::print("{}, cash: {:12.4f},  total_wealth: {:12.4f}\n",
+                   boost::posix_time::to_simple_string(feeds_agg_.time()), broker_agg_.cash(0),
                    broker_agg_.total_wealth());
+
+        // std::cout << "close:" << feeds_agg_.data(0).close().transpose() << std::endl;
+        // std::cout << "adj_close:" << feeds_agg_.data(0).adj_close().transpose() << std::endl;
+        // std::cout << "position: " << broker_agg_.positions(0).transpose() << std::endl;
+        //// std::cout << "profits: " << broker_agg_.profits(0).transpose() << std::endl;
+        // std::cout << "adj_profits: " << broker_agg_.adj_profits(0).transpose() << std::endl;
+        //// std::cout << "values: " << broker_agg_.values(0).transpose() << std::endl;
+        //// std::cout << "dyn_adj_profits: "
+        ////           <<
+        ///broker_agg_.portfolio(0).dyn_adj_profits(broker_agg_.assets(0)).transpose() / <<
+        ///std::endl;
+
+        // auto wv = broker_agg_.wealth_history();
+        // int N = wv.size();
+        // if (N > 2) {
+        //     if (wv.coeff(N - 1) / wv.coeff(N - 2) > 1.1) {
+        //         fmt::print(fmt::fg(fmt::color::red), "Abnormal returns.\n");
+        //     }
+        // }
 
         // for (const auto &item : broker_agg_.portfolio(0).portfolio_items) {
         //     fmt::print("asset: {}, value: {}, profit: {}\n", item.first, item.second.value,

@@ -164,6 +164,8 @@ struct Portfolio {
     VecArrXi positions(int total_assets) const;
     VecArrXd values(int total_assets) const;
     VecArrXd profits(int total_assets) const;
+    VecArrXd adj_profits(int total_assets) const;
+    VecArrXd dyn_adj_profits(int total_assets) const;
 
     void update(const Order &order, double adj_price);
 };
@@ -193,6 +195,8 @@ BK_DEFINE_PORTFOLIO_MEMBER_ACCESSOR(profit, double, 0);
 BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(position, VecArrXi, 0)
 BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(value, VecArrXd, 0)
 BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(profit, VecArrXd, 0)
+BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(adj_profit, VecArrXd, 0)
+BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(dyn_adj_profit, VecArrXd, 0)
 #undef BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR
 
 void Portfolio::update(const Order &order, double adj_price) {

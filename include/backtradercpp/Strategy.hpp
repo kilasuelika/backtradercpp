@@ -4,7 +4,7 @@
 
 #include "Common.hpp"
 #include "DataFeeds.hpp"
-#include "Broker.hpp"
+#include "BrokerImpl.hpp"
 
 namespace backtradercpp {
 namespace strategy {
@@ -14,6 +14,8 @@ class GenericStrategy {
 
   public:
     const auto &time() const { return feed_agg_->time(); }
+    int time_index() const { return time_index_; }
+
     const std::vector<FullAssetData> &datas() const { return feed_agg_->datas(); }
     const FullAssetData &data(int broker) const { return datas()[broker]; }
     virtual void init_strategy(feeds::FeedsAggragator *feed_agg,
@@ -45,8 +47,9 @@ class GenericStrategy {
 
     // Use today's open as target price. Only TOTAL_FRACTION of total total_wealth will be allocated
     // to reserving for fee.
-    template <int UNIT = 1, double TOTAL_FRACTION = 0.99>
-    void adjust_to_weight_target(int broker_id, VecArrXd w, VecArrXd p = VecArrXd());
+    template <int UNIT = 1>
+    void adjust_to_weight_target(int broker_id, VecArrXd w, VecArrXd p = VecArrXd(),
+                                 double TOTAL_FRACTION = 0.99);
 
     void pre_execute() {
         order_pool_.orders.clear();
@@ -71,10 +74,13 @@ class GenericStrategy {
 
     const VecArrXd &profits(int broker) const;
     double profit(int broker, int asset) const;
+    const VecArrXd &adj_profits(int broker) const;
+    double adj_profit(int broker, int asset) const;
 
+    const auto &portfolio(int broker) const;
     const auto &portfolio_items(int broker) const;
 
-    int time_index() const { return time_index_; }
+    const std::vector<std::string> &codes(int broker) const { return feed_agg_->codes(broker); }
 
   private:
     int time_index_ = 0;
@@ -102,7 +108,12 @@ inline void GenericStrategy::init_strategy(feeds::FeedsAggragator *feed_agg,
 BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(position, int, VecArrXi)
 BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(value, double, VecArrXd)
 BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(profit, double, VecArrXd)
+BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(adj_profit, double, VecArrXd)
 #undef BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR
+
+const auto &backtradercpp::strategy::GenericStrategy::portfolio(int broker) const {
+    return broker_agg_->portfolio(broker);
+}
 
 const auto &backtradercpp::strategy::GenericStrategy::portfolio_items(int broker) const {
     return broker_agg_->portfolio(broker).portfolio_items;
@@ -161,8 +172,9 @@ backtradercpp::strategy::GenericStrategy::close(int broker_id, int asset,
     return delayed_buy(broker_id, asset, price_eval, -position(broker_id, asset));
 }
 
-template <int UNIT, double TOTAL_FRACTION>
-void GenericStrategy::adjust_to_weight_target(int broker_id, VecArrXd w, VecArrXd p) {
+template <int UNIT>
+void GenericStrategy::adjust_to_weight_target(int broker_id, VecArrXd w, VecArrXd p,
+                                              double TOTAL_FRACTION) {
     VecArrXd target_prices = data(broker_id).open();
     if (p.size() != 0) {
         target_prices = p;
