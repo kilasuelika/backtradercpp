@@ -169,6 +169,7 @@ inline BrokerImpl::BrokerImpl(double cash, double long_commission_rate,
 Broker &Broker::commission_rate(double long_rate, double short_rate) {
     sp->commission_->long_commission_rate = long_rate;
     sp->commission_->short_commission_rate = short_rate;
+    return *this;
 }
 
 inline void BrokerImpl::process(Order &order) {

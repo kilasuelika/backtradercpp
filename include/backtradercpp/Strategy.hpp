@@ -18,6 +18,8 @@ class GenericStrategy {
 
     const std::vector<FullAssetData> &datas() const { return feed_agg_->datas(); }
     const FullAssetData &data(int broker) const { return datas()[broker]; }
+
+
     virtual void init_strategy(feeds::FeedsAggragator *feed_agg,
                                broker::BrokerAggragator *broker_agg);
 

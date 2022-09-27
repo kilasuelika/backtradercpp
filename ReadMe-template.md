@@ -80,4 +80,4 @@ using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
 ### 
 
 ## Code Structure
-1. Generic(FeedData) -> FeedAggragator(FullAssetData)
+1. FeedData(ohld_data, num_data_, str_data_) -> Generic(FeedData) -> FeedAggragator(FullAssetData)

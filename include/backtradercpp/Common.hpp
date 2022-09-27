@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <boost/circular_buffer.hpp>
 #include <concepts>
+#include<string>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost\date_time\gregorian\gregorian.hpp>
 #include <queue>
@@ -11,6 +12,9 @@
 #include <fmt/color.h>
 #include <memory>
 #include <map>
+#include<unordered_map>
+
+#include "util.hpp"
 
 namespace backtradercpp {
 using VecArrXd = Eigen::Array<double, Eigen::Dynamic, 1>;
@@ -30,10 +34,18 @@ struct OHLCData {
     void reset();
 };
 struct FeedData {
+    FeedData() {
+    };
+    explicit FeedData(int assets);
+
     boost::posix_time::ptime time;
     OHLCData data, adj_data;
     VecArrXi volume;
     VecArrXb valid;
+
+    std::unordered_map<std::string, VecArrXd> num_data_;
+    std::unordered_map<std::string, std::vector<std::string>> str_data_;
+
     void validate_assets();
     void resize(int assets);
 
@@ -47,6 +59,7 @@ class FullAssetData {
     FullAssetData(const FeedData &data, int window = 1);
 
     const FeedData &data(int time = -1) const;
+    const auto &datas() const { return data_; }
 
     VecArrXd open(int time = -1) const; // negative indices, -1 for latest
     double open(int time, int stock) const;
@@ -71,14 +84,24 @@ class FullAssetData {
     VecArrXb valid(int time = -1) const;
     bool valid(int time, int stock) const;
 
-    template <typename T>
-    requires requires { std::is_same_v<T, FeedData>; }
-    void push_back(T &&new_data) { data_.push_back(std::forward<T>(new_data)); }
+    //template <typename T>
+    //requires requires { std::is_same_v<T, FeedData>; }
+    void push_back(const FeedData &new_data) { data_.push_back(new_data); }
+
+    void push_back() {
+        data_.push_back(FeedData(assets_));
+    }
 
     int window() const { return window_; }
     void set_window(int window);
     auto assets() const { return assets_; }
     const auto &time() const { return data_.back().time; }
+
+
+    const auto &num(int k, const std::string &name) const;
+    const auto &num(const std::string &name) const;
+    const auto &str(int k, const std::string &name) const;
+    const auto &str(const std::string &name) const;
 
   private:
     int window_ = 1, assets_ = 0;
@@ -199,6 +222,18 @@ BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(adj_profit, VecArrXd, 0)
 BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(dyn_adj_profit, VecArrXd, 0)
 #undef BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR
 
+#define BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS(name)                                               \
+    const auto &FullAssetData::name(int k, const std::string &name_) const {                       \
+        return data_[window_ + k].name##_data_.at(name_);                                          \
+    }                                                                                              \
+    const auto &FullAssetData::name(const std::string &name_) const {                              \
+        return data_.back().name##_data_.at(name_);                                          \
+    }
+
+BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS(num);
+BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS(str);
+#undef BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS
+
 void Portfolio::update(const Order &order, double adj_price) {
     int asset = order.asset;
     auto it = portfolio_items.find(asset);
@@ -258,6 +293,9 @@ void backtradercpp::OHLCData::reset() {
         ele->setConstant(0);
     }
 }
+
+FeedData::FeedData(int assets) { valid = VecArrXb::Constant(assets, false); }
+
 void FeedData::resize(int assets) {
     data.resize(assets);
     adj_data.resize(assets);
@@ -268,6 +306,9 @@ void backtradercpp::FeedData::reset() {
     data.reset();
     adj_data.reset();
     valid.setConstant(false);
+
+    util::reset_value(num_data_, 0.0);
+    util::reset_value(str_data_, std::string());
 }
 void FeedData::validate_assets() {
     valid = (data.open > 0) && (data.high > 0) && (data.low > 0) && (data.close > 0);
@@ -308,6 +349,7 @@ BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR(VecArrXb, bool, valid);
 void FullAssetData::set_window(int window) {
     window_ = window;
     data_.resize(window);
+    
 };
 #undef BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR
 #undef BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR
