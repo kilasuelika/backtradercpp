@@ -20,7 +20,7 @@ int main() {
     Cerebro cerebro;
     // non_delimit_date is a function that convert date string like "20200101" to standard format.
     //  0.0005 and 0.001 are commission rate for long and short trading.
-    cerebro.add_data(
+    cerebro.add_asset_data(
         feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
                               feeds::TimeStrConv::non_delimited_date),
         broker::Broker(0.0005, 0.001));

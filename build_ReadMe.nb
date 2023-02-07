@@ -10,16 +10,14 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     12685,        264]
-NotebookOptionsPosition[     11309,        232]
-NotebookOutlinePosition[     11751,        249]
-CellTagsIndexPosition[     11708,        246]
+NotebookDataLength[     11918,        242]
+NotebookOptionsPosition[     10664,        213]
+NotebookOutlinePosition[     11114,        230]
+CellTagsIndexPosition[     11071,        227]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
 Notebook[{
-
-Cell[CellGroupData[{
 Cell[BoxData[{
  RowBox[{
   RowBox[{"SetDirectory", "[", 
@@ -46,25 +44,8 @@ Cell[BoxData[{
  CellChangeTimes->{{3.8718018288903627`*^9, 3.871801893681295*^9}, {
    3.872059129467784*^9, 3.8720591816977444`*^9}, 3.8720592669936466`*^9, {
    3.8720615094543743`*^9, 3.8720615259160323`*^9}, 3.872061730659523*^9, 
-   3.8720621424253564`*^9, {3.8720622017147784`*^9, 
-   3.8720622060740547`*^9}},ExpressionUUID->"92ae036a-e4cd-42b7-81dc-\
-731365bc4de5"],
-
-Cell[BoxData[
- TemplateBox[{
-  "DeleteFile", "fdnfnd", 
-   "\"Directory or file \
-\\\"\\!\\(\\*RowBox[{\\\"\\\\\\\"D:\\\\\\\\\\\\\\\\Connect\\\\\\\\\\\\\\\\PT\\\
-\\\\\\\\\\\\\\Projects\\\\\\\\\\\\\\\\backtradercpp\\\\\\\\\\\\\\\\ReadMe.md\\\
-\\\\\"\\\"}]\\)\\\" not found.\"", 2, 3, 1, 32981310031698889265, "Local"},
-  "MessageTemplate"]], "Message", "MSG",
- CellChangeTimes->{3.8720615291899014`*^9, 3.87206162823808*^9, 
-  3.872061733077834*^9, 3.8720617698705187`*^9, 3.8720619440887284`*^9, 
-  3.872062164656495*^9},
- CellLabel->
-  "During evaluation of \
-In[1]:=",ExpressionUUID->"97079a00-9963-4ea8-b83e-ccd171a1f876"]
-}, Open  ]],
+   3.8720621424253564`*^9, {3.8720622017147784`*^9, 3.8720622060740547`*^9}},
+ CellLabel->"In[1]:=",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
 
 Cell[BoxData[
  RowBox[{"DeleteFile", "[", "\"\<Test.md\>\"", "]"}]], "Input",
@@ -230,10 +211,10 @@ Structure\\n1. Generic(FeedData) -> FeedAggragator(FullAssetData)\"\>"], \
  CellLabel->"Out[6]=",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
 }, Open  ]]
 },
-WindowSize->{582.6, 524.4},
-WindowMargins->{{0, Automatic}, {Automatic, 0}},
+WindowSize->{582., 524.4},
+WindowMargins->{{85.2, Automatic}, {Automatic, 16.2}},
 TaggingRules-><|"TryRealOnly" -> False|>,
-FrontEndVersion->"13.1 for Microsoft Windows (64-bit) (June 16, 2022)",
+FrontEndVersion->"13.0 for Microsoft Windows (64-bit) (December 2, 2021)",
 StyleDefinitions->"Default.nb",
 ExpressionUUID->"bff269f8-6d5f-4463-b77e-3edf2af498d6"
 ]
@@ -248,23 +229,20 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
+Cell[558, 20, 1176, 27, 213, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
+Cell[1737, 49, 569, 8, 31, "Input",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
 Cell[CellGroupData[{
-Cell[580, 22, 1159, 28, 158, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
-Cell[1742, 52, 625, 13, 51, "Message",ExpressionUUID->"97079a00-9963-4ea8-b83e-ccd171a1f876"]
-}, Open  ]],
-Cell[2382, 68, 569, 8, 31, "Input",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
-Cell[CellGroupData[{
-Cell[2976, 80, 540, 12, 73, "Input",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
-Cell[3519, 94, 575, 12, 51, "Message",ExpressionUUID->"20dd8047-3b54-4d80-b9bb-367636db0350"],
-Cell[4097, 108, 263, 4, 35, "Output",ExpressionUUID->"9ad4d9a2-5ea1-447a-b4c0-5ecd66c94e1a"]
+Cell[2331, 61, 540, 12, 73, "Input",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
+Cell[2874, 75, 575, 12, 51, "Message",ExpressionUUID->"20dd8047-3b54-4d80-b9bb-367636db0350"],
+Cell[3452, 89, 263, 4, 35, "Output",ExpressionUUID->"9ad4d9a2-5ea1-447a-b4c0-5ecd66c94e1a"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[4397, 117, 512, 10, 52, "Input",ExpressionUUID->"a800a422-bd43-4d94-8c0f-0d4d9e801afa"],
-Cell[4912, 129, 291, 4, 35, "Output",ExpressionUUID->"59798f74-cc23-4be0-b384-ec63bd39a48f"]
+Cell[3752, 98, 512, 10, 52, "Input",ExpressionUUID->"a800a422-bd43-4d94-8c0f-0d4d9e801afa"],
+Cell[4267, 110, 291, 4, 35, "Output",ExpressionUUID->"59798f74-cc23-4be0-b384-ec63bd39a48f"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[5240, 138, 636, 12, 53, "Input",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
-Cell[5879, 152, 5414, 77, 3657, "Output",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
+Cell[4595, 119, 636, 12, 53, "Input",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
+Cell[5234, 133, 5414, 77, 3678, "Output",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
 }, Open  ]]
 }
 ]

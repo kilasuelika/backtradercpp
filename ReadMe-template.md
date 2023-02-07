@@ -1,10 +1,10 @@
 # backtradercpp -- A header-only C++ 20 back testing library
 
-As the name suggests, this library is partially inspired by `backtrader` of python. However `backtrader` constantly made me confusing so I decide to write my own library.
+As the name suggests, this library is partially inspired by `backtrader` on Python. In my own use, `backtrader` constantly made me confusing so I decide to write my own library.
 
 ## Install
 
-It's a header only library. However you need to install some dependencies. On windows:
+It's a header only library. But you need to install some dependencies. On windows:
 ```
 ./vcpkg install boost:x64-windows eigen3:x64-windows fmt:x64-windows
 ```
@@ -35,18 +35,32 @@ Here each csv represents an asset. It contains time, open, high, low, close. An 
 ![[vs_examples/delayed_buy/delayed_buy.cpp]]
 ```
 
+### Hedging and use extra data in CSVDirectoryData
+
+Here we have two data sources: one for stocks and one for options. On options data source, we have some extra data.
+
+```cpp
+![[vs_examples/csv_directory_data_extra/csv_directory_data_extra.cpp]]
+```
+
+### Option delta hedging and common data
+
+In this example, stock data are simulated from geometric brownian motion and stored in a csv file. Option prices for each period are calculated from BSM and stored in another CSV file. There is an extra csv file for storing information of option pricing. Then in strategy, we buy options at begining and short stocks by delta periodicly.
+
+```cpp
+![[vs_examples/option_hedging/option_hedging.cpp]]
+```
+
 ## Important Notes
 
-1. Please use **backward adjusted** data (keep oldest value fixed and adjust following data). When you buy, use **raw price**. I developed an algorithm to deal with backward adjusted data. The core idea is to track the profits under raw price (profti) and adjusted price (dyn_adj_profit). Then the differen `adj_profit - profit` is profits due to external factors. Total wealth will be
-```
-total wealth = cash + asset value under raw price + (dyn_adj_profit - profit)
-```
+1. The library will read data row by row. So you must sort data before running. Also note that currently data sources doesn't deal with thousands separator. Please preprocess data before.
 
-When you sell, a propotion of difference `dyn_adj_profit - profit` will be added to your cash. This means if price adjust is due to dividends, then they will be added to your cash after you sell assets. Although normally they will be direct send to you cash account. But dividens usually are small so I think delayed converting to cash won't too make much difference and I didn't come up with a better idea.
+2. Link to `OpenMP` to accelerate.
 
-Due to forward adjuted prices (keep newest price fixed and adjust older data) may be negative, I'm not sure if my algorithm will work at this case.
+3. You need to fill missing data in middle otherwise there may be extra-ordinary loss, although the final wealth may won't be affected. For example, if some holding assets doesn't have prices in middle, then values of them will suddendly become 0.
 
-2. The library will read data row by row. So you must sort data before running. Also note that currently data sources doesn't deal with thousands separator. Please preprocess data before.
+4. Different data may have different time span, the library will align data automatically for you.
+
 ## Reference
 
 ### Data API used in strategy

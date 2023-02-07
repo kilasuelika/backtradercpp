@@ -14,7 +14,7 @@ struct PerformanceMetric {
 // V is a column vector
 template <typename T> inline auto MDD(const Eigen::EigenBase<T> &_v) {
     const T &v(_v.derived());
-    //取得具体类型
+    //鍙栧緱鍏蜂綋绫诲瀷
     typename T::PlainObject temp;
 
     return std::accumulate(
@@ -40,9 +40,9 @@ template <typename T> inline auto cal_performance(const Eigen::EigenBase<T> &_we
 }
 
 inline void PerformanceMetric::print() const {
-    fmt::print("Annualized year return: {:7.4f}\n", r);
-    fmt::print("Annualized year growth: {:7.4f}\n", growth);
-    fmt::print("MDD: {:4.2f}\n", mdd);
+    fmt::print("{: ^13} : {:7.3f}\n", "Yearly return", r);
+    fmt::print("{: ^13} : {:7.3f}\n", "Yearly growth", growth);
+    fmt::print("{: ^13} : {:7.3f}\n\n", "MDD", mdd);
 }
 } // namespace analysis
 } // namespace backtradercpp

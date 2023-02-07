@@ -4,15 +4,16 @@
 #include <Eigen/Core>
 #include <boost/circular_buffer.hpp>
 #include <concepts>
-#include<string>
+#include <string>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost\date_time\gregorian\gregorian.hpp>
 #include <queue>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <fmt/color.h>
 #include <memory>
 #include <map>
-#include<unordered_map>
+#include <unordered_map>
 
 #include "util.hpp"
 
@@ -21,6 +22,7 @@ using VecArrXd = Eigen::Array<double, Eigen::Dynamic, 1>;
 using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
 using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
 
+using boost::gregorian::date;
 using boost::gregorian::date_duration;
 using boost::gregorian::days;
 
@@ -33,10 +35,9 @@ struct OHLCData {
     void resize(int assets);
     void reset();
 };
-struct FeedData {
-    FeedData() {
-    };
-    explicit FeedData(int assets);
+struct PriceFeedData {
+    PriceFeedData() {}
+    explicit PriceFeedData(int assets);
 
     boost::posix_time::ptime time;
     OHLCData data, adj_data;
@@ -51,15 +52,45 @@ struct FeedData {
 
     void reset();
 };
-
-class FullAssetData {
+struct CommonFeedData {
+    boost::posix_time::ptime time;
+    std::unordered_map<std::string, double> num_data_;
+    std::unordered_map<std::string, std::string> str_data_;
+};
+template <typename T> class FeedDataBuffer {
   public:
-    FullAssetData() = default;
-    FullAssetData(int assets, int window = 1);
-    FullAssetData(const FeedData &data, int window = 1);
+    FeedDataBuffer() = default;
+    FeedDataBuffer(int window) : window_(window) { set_window(window_); }
 
-    const FeedData &data(int time = -1) const;
+    const T &data(int time = -1) const { return data_[time]; }
     const auto &datas() const { return data_; }
+
+    int window() const { return window_; }
+    void set_window(int window) {
+        window_ = window;
+        data_.resize(window);
+    }
+    void push_back(const T &new_data) { data_.push_back(new_data); }
+    virtual void push_back_() = 0;
+
+    const auto &num(int k, const std::string &name) const;
+    const auto &num(const std::string &name) const;
+    const auto &num() const;
+    const auto &str(int k, const std::string &name) const;
+    const auto &str(const std::string &name) const;
+    const auto &str() const;
+
+  protected:
+    int window_ = 1;
+    boost::circular_buffer<T> data_;
+    bool valid_ = false;
+};
+
+class PriceFeedDataBuffer : public FeedDataBuffer<PriceFeedData> {
+  public:
+    PriceFeedDataBuffer() = default;
+    PriceFeedDataBuffer(int assets, int window = 1);
+    PriceFeedDataBuffer(const PriceFeedData &data, int window = 1);
 
     VecArrXd open(int time = -1) const; // negative indices, -1 for latest
     double open(int time, int stock) const;
@@ -84,28 +115,35 @@ class FullAssetData {
     VecArrXb valid(int time = -1) const;
     bool valid(int time, int stock) const;
 
-    //template <typename T>
-    //requires requires { std::is_same_v<T, FeedData>; }
-    void push_back(const FeedData &new_data) { data_.push_back(new_data); }
+    // template <typename T>
+    // requires requires { std::is_same_v<T, FeedData>; }
 
-    void push_back() {
-        data_.push_back(FeedData(assets_));
-    }
+    void push_back_() override { data_.push_back(PriceFeedData(assets_)); }
 
-    int window() const { return window_; }
-    void set_window(int window);
     auto assets() const { return assets_; }
     const auto &time() const { return data_.back().time; }
 
-
-    const auto &num(int k, const std::string &name) const;
-    const auto &num(const std::string &name) const;
-    const auto &str(int k, const std::string &name) const;
-    const auto &str(const std::string &name) const;
+    // const auto &num(int k, const std::string &name) const;
+    // const auto &num(const std::string &name) const;
+    // const auto &str(int k, const std::string &name) const;
+    // const auto &str(const std::string &name) const;
 
   private:
-    int window_ = 1, assets_ = 0;
-    boost::circular_buffer<FeedData> data_;
+    int assets_ = 0;
+};
+
+class CommonFeedDataBuffer : public FeedDataBuffer<CommonFeedData> {
+  public:
+    CommonFeedDataBuffer() = default;
+    CommonFeedDataBuffer(int window) : FeedDataBuffer(window) {}
+    CommonFeedDataBuffer(const CommonFeedData &data, int window = 1) : FeedDataBuffer(window) {
+        data_.push_back(data);
+    }
+
+    void push_back_() override {
+        std::cout << "Common data" << std::endl;
+        data_.push_back(CommonFeedData());
+    }
 };
 
 enum OrderType { Market, Limit };
@@ -222,16 +260,20 @@ BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(adj_profit, VecArrXd, 0)
 BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR(dyn_adj_profit, VecArrXd, 0)
 #undef BK_DEFINE_PORTFOLIO_MEMBER_VEC_ACCESSOR
 
-#define BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS(name)                                               \
-    const auto &FullAssetData::name(int k, const std::string &name_) const {                       \
+#define BK_DEFINE_FeedDataBuffer_EXTRA_ACCESSOS(name)                                              \
+    template <typename T>                                                                          \
+    const auto &FeedDataBuffer<T>::name(int k, const std::string &name_) const {                   \
         return data_[window_ + k].name##_data_.at(name_);                                          \
     }                                                                                              \
-    const auto &FullAssetData::name(const std::string &name_) const {                              \
-        return data_.back().name##_data_.at(name_);                                          \
+    template <typename T> const auto &FeedDataBuffer<T>::name(const std::string &name_) const {    \
+        return data_.back().name##_data_.at(name_);                                                \
+    }                                                                                              \
+    template <typename T> const auto &FeedDataBuffer<T>::name() const {                            \
+        return data_.back().name##_data_;                                                          \
     }
 
-BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS(num);
-BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS(str);
+BK_DEFINE_FeedDataBuffer_EXTRA_ACCESSOS(num);
+BK_DEFINE_FeedDataBuffer_EXTRA_ACCESSOS(str);
 #undef BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS
 
 void Portfolio::update(const Order &order, double adj_price) {
@@ -267,7 +309,7 @@ void Portfolio::update(const Order &order, double adj_price) {
                                   .dyn_adj_profit = -order.fee,
                                   .adj_profit = -order.fee};
     }
-}; // namespace backtradercpp
+}
 
 inline void PortfolioItem::update_value(const ptime &date, double new_price, double new_adj_price) {
     holding_time = date - buying_time;
@@ -294,15 +336,15 @@ void backtradercpp::OHLCData::reset() {
     }
 }
 
-FeedData::FeedData(int assets) { valid = VecArrXb::Constant(assets, false); }
+PriceFeedData::PriceFeedData(int assets) { valid = VecArrXb::Constant(assets, false); }
 
-void FeedData::resize(int assets) {
+void PriceFeedData::resize(int assets) {
     data.resize(assets);
     adj_data.resize(assets);
     volume.resize(assets);
     valid.resize(assets);
 }
-void backtradercpp::FeedData::reset() {
+void backtradercpp::PriceFeedData::reset() {
     data.reset();
     adj_data.reset();
     valid.setConstant(false);
@@ -310,28 +352,28 @@ void backtradercpp::FeedData::reset() {
     util::reset_value(num_data_, 0.0);
     util::reset_value(str_data_, std::string());
 }
-void FeedData::validate_assets() {
+void PriceFeedData::validate_assets() {
     valid = (data.open > 0) && (data.high > 0) && (data.low > 0) && (data.close > 0);
 }
 
 #define BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, var, fun)                                \
-    VecArrXd FullAssetData::fun(int time) const { return data_[window_ + time].data.var; };        \
-    double FullAssetData::fun(int time, int stock) const {                                         \
+    VecArrXd PriceFeedDataBuffer::fun(int time) const { return data_[window_ + time].data.var; };  \
+    double PriceFeedDataBuffer::fun(int time, int stock) const {                                   \
         return data_[window_ + time].data.var.coeff(stock);                                        \
     }
 #define BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR(type1, type2, var)                                  \
-    type1 FullAssetData::var(int time) const { return data_[window_ + time].var; };                \
-    type2 FullAssetData::var(int time, int stock) const {                                          \
+    type1 PriceFeedDataBuffer::var(int time) const { return data_[window_ + time].var; };          \
+    type2 PriceFeedDataBuffer::var(int time, int stock) const {                                    \
         return data_[window_ + time].var.coeff(stock);                                             \
     }
 
-FullAssetData::FullAssetData(int assets, int window)
-    : window_(window), assets_(assets), data_(window){};
-backtradercpp::FullAssetData::FullAssetData(const FeedData &data, int window)
-    : window_(window), data_(window), assets_(data.volume.size()) {
+PriceFeedDataBuffer::PriceFeedDataBuffer(int assets, int window)
+    : FeedDataBuffer(window), assets_(assets){};
+backtradercpp::PriceFeedDataBuffer::PriceFeedDataBuffer(const PriceFeedData &data, int window)
+    : FeedDataBuffer(window), assets_(data.volume.size()) {
     data_.push_back(data);
 }
-const FeedData &FullAssetData::data(int time) const { return data_[time]; };
+// const FeedData &PriceFeedDataBuffer::data(int time) const
 
 BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, open, open);
 BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, high, high);
@@ -346,11 +388,7 @@ BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(adj_data, close, adj_close);
 BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR(VecArrXi, int, volume);
 BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR(VecArrXb, bool, valid);
 
-void FullAssetData::set_window(int window) {
-    window_ = window;
-    data_.resize(window);
-    
-};
+// template <typename T> void FeedDataBuffer<T>::set_window(int window)
 #undef BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR
 #undef BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR
 } // namespace backtradercpp

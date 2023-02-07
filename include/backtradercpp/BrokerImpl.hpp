@@ -41,7 +41,6 @@ class BrokerImpl {
     BrokerImpl(double cash = 10000, double long_rate = 0, double short_rate = 0,
                double long_tax_rate = 0, double short_tax_rate = 0);
 
-
     void process(Order &order);
     void process_old_orders();
     void update_info();
@@ -52,9 +51,11 @@ class BrokerImpl {
     VecArrXd profits() const { return portfolio_.profits(assets()); }
     VecArrXd adj_profits() const { return portfolio_.adj_profits(assets()); };
 
+    void set_allow_short(bool flag) { allow_short_ = flag; };
+
     void resize(int n);
 
-    void set_data_ptr(FeedData *data) { current_ = data; }
+    void set_data_ptr(PriceFeedData *data) { current_ = data; }
 
     void add_order(const Order &order);
 
@@ -65,7 +66,7 @@ class BrokerImpl {
 
     std::shared_ptr<GenericCommission> commission_;
     std::shared_ptr<GenericTax> tax_;
-    FeedData *current_;
+    PriceFeedData *current_;
     // double cash_ = 10000;
     Portfolio portfolio_;
 
@@ -73,6 +74,8 @@ class BrokerImpl {
     // VecArrXd investments_;
     //  FullAssetData *data_;
     std::list<Order> unprocessed;
+
+    bool allow_short_ = false, allow_default_ = false;
 };
 
 struct Broker {
@@ -81,8 +84,7 @@ struct Broker {
     Broker(double cash = 10000, double long_rate = 0, double short_rate = 0,
            double long_tax_rate = 0, double short_tax_rate = 0)
         : sp(std::make_shared<BrokerImpl>(cash, long_rate, short_rate, long_tax_rate,
-                                          short_tax_rate)) {
-    }
+                                          short_tax_rate)) {}
 
     Broker &commission_eval(std::shared_ptr<GenericCommission> commission_) {
         sp->commission_ = commission_;
@@ -93,6 +95,15 @@ struct Broker {
 
     Broker &tax(std::shared_ptr<GenericTax> tax_) {
         sp->tax_ = tax_;
+        return *this;
+    }
+
+    Broker &allow_short() {
+        sp->allow_short_ = true;
+        return *this;
+    }
+    Broker &allow_default() {
+        sp->allow_default_ = true;
         return *this;
     }
 
@@ -110,9 +121,11 @@ struct Broker {
 
     void resize(int n) { sp->resize(n); };
 
-    void set_data_ptr(FeedData *data) { sp->set_data_ptr(data); }
+    void set_data_ptr(PriceFeedData *data) { sp->set_data_ptr(data); }
 
     void add_order(const Order &order) { sp->add_order(order); };
+
+    const ptime &time() const { return sp->current_->time; }
 };
 class BrokerAggragator {
   public:
@@ -144,11 +157,18 @@ class BrokerAggragator {
     double wealth(int broker) const { return wealths_.coeff(broker); }
     const auto &wealth_history() const { return wealth_history_; }
     double cash(int broker) const { return brokers_[broker].portfolio().cash; }
+    double total_cash() const {
+        double cash = 0;
+        for (const auto &b : brokers_)
+            cash += b.portfolio().cash;
+        return cash;
+    }
     // void init();
     void summary() const;
 
   private:
     // std::shared_ptr<feeds::FeedsAggragator> feed_agg_;
+    std::vector<ptime> times_;
     std::vector<Broker> brokers_;
 
     std::vector<VecArrXi> positions_;
@@ -160,8 +180,8 @@ class BrokerAggragator {
 };
 
 inline BrokerImpl::BrokerImpl(double cash, double long_commission_rate,
-                              double short_commission_rate,
-                              double long_tax_rate, double short_tax_rate)
+                              double short_commission_rate, double long_tax_rate,
+                              double short_tax_rate)
     : portfolio_{cash},
       commission_(std::make_shared<GenericCommission>(long_commission_rate, short_commission_rate)),
       tax_(std::make_shared<GenericTax>(long_tax_rate, long_commission_rate)) {}
@@ -178,6 +198,8 @@ inline void BrokerImpl::process(Order &order) {
     int asset = order.asset;
     auto time = current_->time;
     bool to_unprocessed = true;
+    // fmt::print("volume: {}\n", order.volume);
+    // std::abort();
     if (time < order.valid_from) {
         order.state = OrderState::Waiting;
         return;
@@ -202,15 +224,33 @@ inline void BrokerImpl::process(Order &order) {
                 order.fee = commission + tax;
                 double total_v = order.value + order.fee;
                 // fmt::print("cash: {}, total_v: {}\n", portfolio_.cash, total_v);
-                if (((order.volume > 0) && (portfolio_.cash > total_v)) || (order.volume < 0)) {
+                bool order_valid = true;
+                // Cash constraint.
+                if (portfolio_.cash < total_v) {
+                    if (!allow_default_) {
+                        order_valid = false;
+                        fmt::print(fmt::fg(fmt::color::red), "Insufficient funds.\n");
+                    }
+                }
+                // Volume constraint.
+                if (portfolio_.position(asset) + order.volume < 0) {
+                    if (!allow_short_) {
+                        order_valid = false;
+                        fmt::print(fmt::fg(fmt::color::red), "Short not allowed.\n");
+                    }
+                }
+                if (order_valid) {
                     order.processed = true;
                     order.processed_at = time;
-                    //   fmt::print(fmt::fg(fmt::color::yellow), "created_at: {}, success_at: {}\n",
+                    //   fmt::print(fmt::fg(fmt::color::yellow), "created_at: {}, success_at:
+                    //   {}\n",
                     //             boost::posix_time::to_iso_string//(order.created_at),
                     //              to_iso_string(order.processed_at));
                     portfolio_.update(order, current_->adj_data.close(asset));
                     //  fmt::print("order processed. cash: {}\n", portfolio_.cash);
                     order.state = OrderState::Success;
+
+                    // fmt::print("order processed. cash: {}\n", portfolio_.cash);
                 }
             }
         }
@@ -232,12 +272,11 @@ inline void BrokerImpl::process_old_orders() {
     }
 }
 
-inline void BrokerImpl::resize(int n) {
-}
+inline void BrokerImpl::resize(int n) {}
 
 inline void BrokerImpl::add_order(const Order &order) { unprocessed.emplace_back(order); }
 inline void BrokerAggragator::process(OrderPool &pool) {
-    //#pragma omp parallel for
+    // #pragma omp parallel for
     for (auto &order : pool.orders) {
         auto broker = brokers_[order.broker_id];
         broker.process(order);
@@ -245,6 +284,7 @@ inline void BrokerAggragator::process(OrderPool &pool) {
             broker.add_order(order);
         }
     }
+    std::cout << "processed" << std::endl;
 }
 
 inline void BrokerAggragator::process_old_orders() {
@@ -258,6 +298,7 @@ inline void BrokerAggragator::update_info() {
         auto broker = brokers_[i];
         const auto &data = broker.sp->current_;
         const auto &time = data->time;
+
         wealths_.coeffRef(i) = broker.portfolio().cash;
         for (auto &[asset, item] : broker.sp->portfolio_.portfolio_items) {
             if (data->valid.coeff(asset)) {
@@ -270,16 +311,27 @@ inline void BrokerAggragator::update_info() {
         profits_[i] = broker.profits();
         adj_profits_[i] = broker.adj_profits();
     }
+
     wealth_ = wealths_.sum();
+
     int n = wealth_history_.size();
     wealth_history_.conservativeResize(n + 1);
     wealth_history_.coeffRef(n) = wealth_;
+
+    // Update time.
+    ptime t = brokers_[0].time();
+    for (int i = 1; i < brokers_.size(); ++i) {
+        if (t < brokers_[i].time()) {
+            t = brokers_[i].time();
+        }
+    }
+    times_.emplace_back(std::move(t));
 }
 
 inline void BrokerAggragator::add_broker(const Broker &broker) {
     brokers_.push_back(broker);
-    positions_.emplace_back();
-    values_.emplace_back();
+    positions_.emplace_back(broker.positions());
+    values_.emplace_back(broker.values());
     profits_.emplace_back();
     adj_profits_.emplace_back();
 
@@ -288,9 +340,27 @@ inline void BrokerAggragator::add_broker(const Broker &broker) {
 }
 
 inline void BrokerAggragator::summary() const {
-    fmt::print("Initial: {:14.4f}, Final: {:14.4f}\n", wealth_history_.coeff(0),
-               *(wealth_history_.end() - 1));
-    analysis::cal_performance(wealth_history_).print();
+    util::cout("{:=^50}\nSummary\n", "");
+
+    if (times_.empty()) {
+        util::cout("No data...\n");
+    } else {
+
+        fmt::print("{: ^6} : {: ^21} —— {: ^21}, {: ^12} periods\n", "Time",
+                   util::to_string(times_[0]), util::to_string(times_.back()), times_.size());
+        double start_ = *wealth_history_.begin(), end_ = *(wealth_history_.end() - 1),
+               d = end_ - start_;
+        if (d >= 0) {
+            fmt::print("{: ^6} : {: ^21.4f} —— {: ^21.4f}, {: ^12.2f} profit\n", "Wealth", start_,
+                       end_, d);
+        } else {
+            fmt::print("{: ^6} : {: ^21.4f} —— {: ^21.4f}, {: ^12.2f} loss\n", "Wealth", start_,
+                       end_, d);
+        }
+        analysis::cal_performance(wealth_history_).print();
+    }
+
+    util::cout("{:=^50}\n", "");
 }
-} // namespace broker
-} // namespace backtradercpp
+}; // namespace broker
+}; // namespace backtradercpp
