@@ -6,3 +6,4 @@ vs_examples/delayed_buy/x64
 vs_examples/directory_data/x64
 vs_examples/equal_weight/x64
 vs_examples/csv_directory_data_extra/x64
+vs_examples/option_hedging/x64
