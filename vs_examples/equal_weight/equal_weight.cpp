@@ -14,10 +14,10 @@ struct EqualWeightStrategy : strategy::GenericStrategy {
 
 int main() {
     Cerebro cerebro;
-    cerebro.add_asset_data(
-        feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
-                              feeds::TimeStrConv::delimited_date),
-        broker::Broker(1000000, 0.0005, 0.001), 2); // 2 for window
+    cerebro.add_broker(broker::BaseBroker(1000000, 0.0005, 0.001)
+                           .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
+                                                           feeds::TimeStrConv::non_delimited_date)),
+                       2); // 2 for window
     cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());
     cerebro.run();
 }

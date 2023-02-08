@@ -19,7 +19,7 @@ inline void check_path_exists(const std::string &path) {
     if (!std::filesystem::exists(path)) {
         std::cout << "File " + path + " not exists." << std::endl;
         std::cout << "Absolute path " + absolute_path(path) << std::endl;
-        throw std::range_error("File " + path + " not exists.");
+        throw std::range_error("File " + path + " doesn't exists.");
     }
 }
 template <typename... Args> std::string path_join(Args &&...args) {
@@ -39,7 +39,7 @@ template <typename T, typename T2> void reset_value(T &m, const T2 &v_) {
 }
 
 inline std::string to_string(const boost::posix_time::ptime &t) {
-    std::cout << t << std::endl;
+    // std::cout << t << std::endl;
     return fmt::format("{:04}-{:02}-{:02} {:02}-{:02}-{:02}", t.date().year(), t.date().month(),
                        t.date().day(), t.time_of_day().hours(), t.time_of_day().minutes(),
                        t.time_of_day().seconds());
@@ -69,5 +69,22 @@ template <typename T> std::string format_map(const T &m) {
     res += " }";
     return res;
 }
+
+auto delimited_to_date(const std::string &s) {
+    return boost::gregorian::date(std::stoi(s.substr(0, 4)), std::stoi(s.substr(5, 2)),
+                                  std::stoi(s.substr(8, 2)));
+}
 } // namespace util
 } // namespace backtradercpp
+
+namespace std {
+
+// Note: This is pretty much the only time you are allowed to
+// declare anything inside namespace std!
+template <> struct hash<boost::gregorian::date> {
+    size_t operator()(const boost::gregorian::date &date) const {
+        return std::hash<decltype(date.julian_day())>()(date.julian_day());
+    }
+};
+
+} // namespace std

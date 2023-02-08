@@ -4,7 +4,7 @@
 
 #include "Common.hpp"
 #include "DataFeeds.hpp"
-#include "BrokerImpl.hpp"
+#include "BaseBrokerImpl.hpp"
 
 namespace backtradercpp {
 namespace strategy {

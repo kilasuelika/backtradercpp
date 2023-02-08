@@ -10,14 +10,16 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     11918,        242]
-NotebookOptionsPosition[     10664,        213]
-NotebookOutlinePosition[     11114,        230]
-CellTagsIndexPosition[     11071,        227]
+NotebookDataLength[      2756,         84]
+NotebookOptionsPosition[      2224,         66]
+NotebookOutlinePosition[      2675,         83]
+CellTagsIndexPosition[      2632,         80]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
 Notebook[{
+
+Cell[CellGroupData[{
 Cell[BoxData[{
  RowBox[{
   RowBox[{"SetDirectory", "[", 
@@ -40,178 +42,29 @@ Cell[BoxData[{
        RowBox[{"Shortest", "[", "x__", "]"}], "~~", "\"\<]]\>\""}], ":>", 
       RowBox[{"Import", "[", 
        RowBox[{"x", ",", "\"\<Text\>\""}], "]"}]}]}], "]"}]}], 
-  "]"}], "\[IndentingNewLine]"}], "Input",
+  "]"}]}], "Input",
  CellChangeTimes->{{3.8718018288903627`*^9, 3.871801893681295*^9}, {
    3.872059129467784*^9, 3.8720591816977444`*^9}, 3.8720592669936466`*^9, {
    3.8720615094543743`*^9, 3.8720615259160323`*^9}, 3.872061730659523*^9, 
-   3.8720621424253564`*^9, {3.8720622017147784`*^9, 3.8720622060740547`*^9}},
+   3.8720621424253564`*^9, {3.8720622017147784`*^9, 3.8720622060740547`*^9}, 
+   3.884738114971756*^9},
  CellLabel->"In[1]:=",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
 
 Cell[BoxData[
- RowBox[{"DeleteFile", "[", "\"\<Test.md\>\"", "]"}]], "Input",
- CellChangeTimes->{{3.8718019898680305`*^9, 3.8718020466406555`*^9}, {
-  3.8718020774225683`*^9, 3.871802098787753*^9}, {3.8718021539705143`*^9, 
-  3.87180221830661*^9}, {3.871802269273806*^9, 3.8718022916847935`*^9}, {
-  3.871802366435565*^9, 3.871802377713797*^9}, {3.872061812624302*^9, 
-  3.872061819699331*^9}, {3.872062003798108*^9, 3.872062021672909*^9}, {
-  3.872062218256564*^9, 3.8720622691368876`*^9}},
- CellLabel->"In[7]:=",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
-
-Cell[CellGroupData[{
-
-Cell[BoxData[
- RowBox[{
-  RowBox[{"DeleteFile", "[", 
-   RowBox[{"FileNameJoin", "[", 
-    RowBox[{"{", 
-     RowBox[{
-      RowBox[{"NotebookDirectory", "[", "]"}], ",", "\"\<ReadMe.md\>\""}], 
-     "}"}], "]"}], "]"}], ";", 
-  RowBox[{"FileNames", "[", "\"\<ReadMe.md\>\"", "]"}]}]], "Input",
- CellChangeTimes->{{3.871802198473812*^9, 3.8718022272414618`*^9}, {
-  3.872061834898326*^9, 3.872061849744584*^9}, {3.872062092777937*^9, 
-  3.8720621275027895`*^9}},
- CellLabel->"In[8]:=",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
-
-Cell[BoxData[
  TemplateBox[{
-  "DeleteFile", "ioarg", 
-   "\"I/O operation is not valid for \
-\\!\\(\\*RowBox[{\\\"\\\\\\\"D:\\\\\\\\\\\\\\\\Connect\\\\\\\\\\\\\\\\PT\\\\\\\
-\\\\\\\\\\Projects\\\\\\\\\\\\\\\\backtradercpp\\\\\\\\\\\\\\\\ReadMe.md\\\\\\\
-\"\\\"}]\\).\"", 2, 8, 5, 32981308943965670982, "Local"},
+  "DeleteFile", "fdnfnd", 
+   "\"Directory or file \
+\\\"\\!\\(\\*RowBox[{\\\"\\\\\\\"ReadMe.md\\\\\\\"\\\"}]\\)\\\" not found.\"",
+    2, 3, 1, 29397603915918874123, "Local"},
   "MessageTemplate"]], "Message", "MSG",
- CellChangeTimes->{{3.8720618368259335`*^9, 3.872061872340531*^9}, {
-  3.872062111671285*^9, 3.8720621311600657`*^9}},
+ CellChangeTimes->{{3.884849082906781*^9, 3.8848491045023804`*^9}, 
+   3.8848491441969447`*^9},
  CellLabel->
   "During evaluation of \
-In[8]:=",ExpressionUUID->"20dd8047-3b54-4d80-b9bb-367636db0350"],
-
-Cell[BoxData[
- RowBox[{"{", "\<\"ReadMe.md\"\>", "}"}]], "Output",
- CellChangeTimes->{{3.872061851756673*^9, 3.8720618723505306`*^9}, {
-  3.8720621117313576`*^9, 3.872062131171996*^9}},
- CellLabel->"Out[8]=",ExpressionUUID->"9ad4d9a2-5ea1-447a-b4c0-5ecd66c94e1a"]
-}, Open  ]],
-
-Cell[CellGroupData[{
-
-Cell[BoxData[
- RowBox[{"StringReplace", "[", 
-  RowBox[{"\"\<xx(aabc)\>\"", ",", 
-   RowBox[{"{", 
-    RowBox[{
-     RowBox[{"RegularExpression", "[", "\"\<\\\\(([^b]+)\>\"", "]"}], "->", 
-     "\"\<\>\""}], "}"}]}], "]"}]], "Input",
- CellChangeTimes->{{3.8718020043247843`*^9, 3.8718020084744835`*^9}, {
-   3.8718023868486147`*^9, 3.8718025079271774`*^9}, {3.871802706322393*^9, 
-   3.8718028040822153`*^9}, 3.8718029252393236`*^9},
- CellLabel->"In[39]:=",ExpressionUUID->"a800a422-bd43-4d94-8c0f-0d4d9e801afa"],
-
-Cell[BoxData["\<\"xxbc)\"\>"], "Output",
- CellChangeTimes->{{3.871802410217327*^9, 3.871802508446828*^9}, {
-   3.8718027105510874`*^9, 3.8718027588869724`*^9}, 3.8718027930143976`*^9, 
-   3.8718029263896184`*^9},
- CellLabel->"Out[39]=",ExpressionUUID->"59798f74-cc23-4be0-b384-ec63bd39a48f"]
-}, Open  ]],
-
-Cell[CellGroupData[{
-
-Cell[BoxData[
- RowBox[{"StringReplace", "[", 
-  RowBox[{"file", ",", 
-   RowBox[{
-    RowBox[{"\"\<![[\>\"", "~~", 
-     RowBox[{"Shortest", "[", "x__", "]"}], "~~", "\"\<]]\>\""}], ":>", 
-    RowBox[{"Import", "[", 
-     RowBox[{"x", ",", "\"\<Text\>\""}], "]"}]}]}], "]"}]], "Input",
- CellChangeTimes->{{3.871802998297973*^9, 3.8718030345497026`*^9}, {
-  3.8718030667127943`*^9, 3.871803076757267*^9}, {3.8718031652940054`*^9, 
-  3.8718031707804356`*^9}, {3.8720591997178416`*^9, 3.8720592009575615`*^9}, {
-  3.872059243581193*^9, 3.8720592548752327`*^9}},
- CellLabel->"In[6]:=",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
-
-Cell[BoxData["\<\"# backtradercpp -- A header-only C++ 20 back testing \
-library\\n\\nAs the name suggests, this library is partially inspired by \
-`backtrader` of python. However `backtrader` constantly made me confusing so \
-I decide to write my own library.\\n\\n## Install\\nIt's a header only \
-library. However you need to install some dependencies. On \
-windows:\\n```\\n./vcpkg install boost:x64-windows eigen3:x64-windows \
-fmt:x64-windows\\n```\\n\\n\\n## Example\\nSee `vs_examples`.\\n\\n### Most \
-basic example\\n\\n```cpp\\n#include <iostream>\\n#include \
-\\\"../../include/backtradercpp/Cerebro.hpp\\\"\\nusing namespace \
-backtradercpp;\\nusing namespace std;\\n\\nstruct SimpleStrategy : \
-strategy::GenericStrategy {\\n    void run() override {\\n        // Buy \
-assets at 5th day.\\n        if (i == 5) {\\n            for (int j = 0; j < \
-data(0).assets(); ++j) {\\n                if (data(0).valid(-1, j)) {\\n     \
-               // Buy 10 asset j at the price of latest day(-1) on the broker \
-0.\\n                    buy(0, j, data(0).open(-1, j), 10);\\n               \
- }\\n            }\\n        }\\n        ++i;\\n    }\\n\\n    int i = \
-1;\\n};\\nint main() {\\n    Cerebro cerebro;\\n    // non_delimit_date is a \
-function that convert date string like \\\"20200101\\\" to standard \
-format.\\n    //  0.0005 and 0.001 are commission rate for long and short \
-trading.\\n    cerebro.add_data(\\n        \
-std::make_shared<feeds::CSVTabularData>(\\\"../../example_data/CSVTabular/\
-djia.csv\\\",\\n                                                \
-feeds::TimeStrConv::non_delimited_date),\\n        \
-std::make_shared<broker::Broker>(0.0005, 0.001),);\\n    \
-cerebro.set_strategy(std::make_shared<SimpleStrategy>());\\n    \
-cerebro.run();\\n}\\n```\\n\\n### Equal weight strategy\\n\\n```\\n#include \
-\\\"../../include/backtradercpp/Cerebro.hpp\\\"\\nusing namespace \
-backtradercpp;\\n\\nstruct EqualWeightStrategy : strategy::GenericStrategy \
-{\\n    void run() override {\\n        // Re-adjust to equal weigh each 30 \
-trading days.\\n        if (time_index() % 30 == 0) {\\n            \
-adjust_to_weight_target(0, VecArrXd::Constant(assets(0), 1. / assets(0)));\\n \
-       }\\n    }\\n};\\n\\nint main() {\\n    Cerebro cerebro;\\n    \
-cerebro.add_data(\\n        \
-std::make_shared<feeds::CSVTabularData>(\\\"../../example_data/CSVTabular/\
-djia.csv\\\",\\n                                                \
-feeds::TimeStrConv::delimited_date),\\n        \
-std::make_shared<broker::Broker>(10000, 0.0005, 0.001), 2); // 2 for \
-window\\n    \
-cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());\\n    \
-cerebro.run();\\n}\\n```\\n\\n### Stop on loss and profit\\n\\n```\\n#include \
-\\\"../../include/backtradercpp/Cerebro.hpp\\\"\\nusing namespace \
-backtradercpp;\\n\\nstruct SimpleStrategy : strategy::GenericStrategy {\\n    \
-void run() override {\\n        // Do nothing at initial 30 days.\\n        \
-if (time_index() < 30) {\\n            return;\\n        }\\n        // If \
-daily return larger than 0.05, then buy.\\n        for (int j = 0; j < \
-data(0).assets(); ++j) {\\n            if (data(0).valid(-1, j)) {\\n         \
-       double p = data(0).close(-1, j), old_p = data(0).close(-2, j);\\n      \
-          if ((old_p > 0) && ((p / old_p) > 1.05))\\n                    // \
-Issue an order of buy at the price of open on next day.\\n                    \
-delayed_buy(0, j, EvalOpen::exact(), 10);\\n            }\\n        }\\n      \
-  // Sell on broker 0 if profits or loss reaching target.\\n        // Price \
-is open of next day.\\n        for (const auto &[asset, item] : \
-portfolio_items(0)) {\\n            if (item.profit > 1500 || item.profit < \
--1000) {\\n                close(0, asset, EvalOpen::exact());\\n            \
-}\\n        }\\n    }\\n};\\n\\nint main() {\\n    Cerebro cerebro;\\n\\n    \
-cerebro.add_data(\\n        \
-std::make_shared<feeds::CSVTabularData>(\\\"../../example_data/CSVTabular/\
-djia.csv\\\",\\n                                                \
-feeds::TimeStrConv::non_delimited_date),\\n        \
-std::make_shared<broker::Broker>(10000, 0.0005, 0.001), 2); // 2 for \
-window\\n    cerebro.set_strategy(std::make_shared<SimpleStrategy>());\\n    \
-cerebro.run();\\n}\\n```\\n\\n## Important Notes\\n\\n1. Please use \
-**backward adjusted** data (keep oldest value fixed and adjust following \
-data). When you buy, use **raw price**. I developed an algorithm to deal with \
-backward adjusted data. The core idea is to track the profits under raw price \
-(profti) and adjusted price (dyn_adj_profit). Then the differen `adj_profit - \
-profit` is profits due to external factors. Total wealth will \
-be\\n```\\ntotal wealth = cash + asset value under raw price + \
-(dyn_adj_profit - profit)\\n```\\nWhen you sell, a propotion of difference \
-`dyn_adj_profit - profit` will be added to your cash.\\n\\nDue to forward \
-adjuted prices (keep newest price fixed and adjust older data) may be \
-negative, I'm not sure if my algorithm will work at this case.\\n## Code \
-Structure\\n1. Generic(FeedData) -> FeedAggragator(FullAssetData)\"\>"], \
-"Output",
- CellChangeTimes->{{3.87180301137361*^9, 3.871803036431075*^9}, 
-   3.8718030775959935`*^9, 3.871803171171974*^9, 3.87205920156965*^9, 
-   3.872059255787012*^9},
- CellLabel->"Out[6]=",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
+In[1]:=",ExpressionUUID->"f1dc3bed-11dd-460f-87fd-3f143c46ab06"]
 }, Open  ]]
 },
-WindowSize->{582., 524.4},
+WindowSize->{581.4, 524.4},
 WindowMargins->{{85.2, Automatic}, {Automatic, 16.2}},
 TaggingRules-><|"TryRealOnly" -> False|>,
 FrontEndVersion->"13.0 for Microsoft Windows (64-bit) (December 2, 2021)",
@@ -229,20 +82,9 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[558, 20, 1176, 27, 213, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
-Cell[1737, 49, 569, 8, 31, "Input",ExpressionUUID->"6fc61378-ce78-40e7-b85f-50d5e4c5a891"],
 Cell[CellGroupData[{
-Cell[2331, 61, 540, 12, 73, "Input",ExpressionUUID->"80b44336-2650-4e4c-a1a1-9f5bdead4abe"],
-Cell[2874, 75, 575, 12, 51, "Message",ExpressionUUID->"20dd8047-3b54-4d80-b9bb-367636db0350"],
-Cell[3452, 89, 263, 4, 35, "Output",ExpressionUUID->"9ad4d9a2-5ea1-447a-b4c0-5ecd66c94e1a"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[3752, 98, 512, 10, 52, "Input",ExpressionUUID->"a800a422-bd43-4d94-8c0f-0d4d9e801afa"],
-Cell[4267, 110, 291, 4, 35, "Output",ExpressionUUID->"59798f74-cc23-4be0-b384-ec63bd39a48f"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[4595, 119, 636, 12, 53, "Input",ExpressionUUID->"7a71364e-6e5c-490c-a7eb-5209deb5f1af"],
-Cell[5234, 133, 5414, 77, 3678, "Output",ExpressionUUID->"93e26d9f-42a3-4448-89ad-6007b19baef1"]
+Cell[580, 22, 1179, 28, 137, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
+Cell[1762, 52, 446, 11, 30, "Message",ExpressionUUID->"f1dc3bed-11dd-460f-87fd-3f143c46ab06"]
 }, Open  ]]
 }
 ]

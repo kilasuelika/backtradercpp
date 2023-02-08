@@ -2,7 +2,7 @@
 /*ZhouYao at 2022-09-10*/
 
 #include "DataFeeds.hpp"
-#include "BrokerImpl.hpp"
+#include "BaseBrokerImpl.hpp"
 #include "Strategy.hpp"
 #define SPDLOG_FMT_EXTERNAL
 #include <spdlog/stopwatch.h>
@@ -12,16 +12,21 @@ namespace backtradercpp {
 
 class Cerebro {
   public:
-    void add_asset_data(feeds::GenericPriceDataFeed data, broker::Broker broker, int window = 1);
+    // window is for strategy. DataFeed and Broker doesn't store history data.
+    void add_broker(broker::BaseBroker broker, int window = 1);
     void add_common_data(feeds::GenericCommonDataFeed data, int window);
 
     // void init_feeds_aggrator_();
     void set_strategy(std::shared_ptr<strategy::GenericStrategy> strategy);
     void init_strategy();
     void set_range(const date &start, const date &end = date(boost::date_time::max_date_time));
+    // Set a directory for logging.
+    void set_log_dir(const std::string &dir);
 
     void run();
     const std::vector<PriceFeedDataBuffer> &datas() const { return price_feeds_agg_.datas(); }
+
+    const auto &performance() const { return broker_agg_.performance(); }
 
   private:
     // std::vector<int> asset_broker_map_
@@ -34,16 +39,10 @@ class Cerebro {
     ptime start_{boost::posix_time::min_date_time}, end_{boost::posix_time::max_date_time};
 };
 
-void Cerebro::add_asset_data(feeds::GenericPriceDataFeed data, broker::Broker broker, int window) {
-    price_feeds_agg_.add_feed(data);
+void Cerebro::add_broker(broker::BaseBroker broker, int window) {
+    price_feeds_agg_.add_feed(broker.feed());
     price_feeds_agg_.set_window(price_feeds_agg_.datas().size() - 1, window);
-
-    broker.resize(data.assets());
-    broker.sp->current_ = data.data_ptr();
-
     broker_agg_.add_broker(broker);
-
-    // broker->
 }
 void Cerebro::add_common_data(feeds::GenericCommonDataFeed data, int window) {
     common_feeds_agg_.add_feed(data);
@@ -83,36 +82,22 @@ void Cerebro::run() {
             broker_agg_.process_old_orders();
             auto order_pool = strategy_->execute();
             broker_agg_.process(order_pool);
+            broker_agg_.process_terms();
             broker_agg_.update_info();
 
             fmt::print("cash: {:12.4f},  total_wealth: {:12.2f}\n", broker_agg_.total_cash(),
                        broker_agg_.total_wealth());
             fmt::print("Using {} seconds.\n", util::sw_to_seconds(sw));
         }
-        // std::cout << "close:" << feeds_agg_.data(0).close().transpose() << std::endl;
-        // std::cout << "adj_close:" << feeds_agg_.data(0).adj_close().transpose() << std::endl;
-        // std::cout << "position: " << broker_agg_.positions(0).transpose() << std::endl;
-        //// std::cout << "profits: " << broker_agg_.profits(0).transpose() << std::endl;
-        // std::cout << "adj_profits: " << broker_agg_.adj_profits(0).transpose() << std::endl;
-        //// std::cout << "values: " << broker_agg_.values(0).transpose() << std::endl;
-        //// std::cout << "dyn_adj_profits: "
-        ////           <<
-        /// broker_agg_.portfolio(0).dyn_adj_profits(broker_agg_.assets(0)).transpose() / <<
-        /// std::endl;
-
-        // auto wv = broker_agg_.wealth_history();
-        // int N = wv.size();
-        // if (N > 2) {
-        //     if (wv.coeff(N - 1) / wv.coeff(N - 2) > 1.1) {
-        //         fmt::print(fmt::fg(fmt::color::red), "Abnormal returns.\n");
-        //     }
-        // }
-
-        // for (const auto &item : broker_agg_.portfolio(0).portfolio_items) {
-        //     fmt::print("asset: {}, value: {}, profit: {}\n", item.first, item.second.value,
-        //                item.second.profit);
-        // }
     }
     broker_agg_.summary();
+}
+
+void Cerebro::set_log_dir(const std::string &dir) {
+    if (!std::filesystem::exists(dir)) {
+        std::filesystem::create_directories(dir);
+    }
+
+    broker_agg_.set_log_dir(dir);
 }
 }; // namespace backtradercpp

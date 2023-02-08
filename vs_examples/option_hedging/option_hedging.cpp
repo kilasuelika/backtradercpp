@@ -45,19 +45,22 @@ int main() {
     // code_extractor: extract code form filename.
     int window = 2;
     // Option price.
-    cerebro.add_asset_data(feeds::CSVTabularData("../../example_data/Option/Option.csv",
-                                                 feeds::TimeStrConv::delimited_date),
-                           broker::Broker(0).allow_default(), window);
+    cerebro.add_broker(
+        broker::BaseBroker(0).allow_default().set_feed(feeds::CSVTabularData(
+            "../../example_data/Option/Option.csv", feeds::TimeStrConv::delimited_date)),
+        window);
     // Stock price
-    cerebro.add_asset_data(feeds::CSVTabularData("../../example_data/Option/Stock.csv",
-                                                 feeds::TimeStrConv::delimited_date),
-                           broker::Broker(0).allow_short(), window);
+    cerebro.add_broker(
+        broker::BaseBroker(0).allow_short().set_feed(feeds::CSVTabularData(
+            "../../example_data/Option/Stock.csv", feeds::TimeStrConv::delimited_date)),
+        window);
     // Information for option
     cerebro.add_common_data(feeds::CSVCommonData("../../example_data/Option/OptionInfo.csv",
                                                  feeds::TimeStrConv::delimited_date),
                             window);
     auto s = std::make_shared<DeltaOptionHedgingStrategy>();
     cerebro.set_strategy(s);
+    cerebro.set_log_dir("log");
     cerebro.run();
 
     fmt::print(fmt::fg(fmt::color::yellow), "Exact profits: {}\n", -941686);

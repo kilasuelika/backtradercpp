@@ -82,9 +82,7 @@ class GenericPriceDataImpl : public GenericDataImpl<PriceFeedData> {
   protected:
     friend class FeedsAggragator;
 
-    virtual void init() {
-        util::cout("Price data initilizing finished. Total {} assets.\n", assets_);
-    }
+    virtual void init() { fmt::print(fmt::fg(fmt::color::yellow), "Total {} assets.\n", assets_); }
 
     int assets_ = 0;
     std::vector<std::string> codes_;
@@ -140,8 +138,11 @@ class CSVDirectoryDataImpl : public GenericPriceDataImpl {
         return *this;
     }
 
-  private:
+    // init() must be manunally called. Because in Cerebro::add_data_feed, the evaluation order of
+    // data feed and broker are unspecified in C++ standard.
     void init() override;
+
+  private:
     std::string raw_data_dir, adj_data_dir;
     std::vector<std::string> raw_data_filenames, adj_data_filenames;
 
@@ -222,7 +223,7 @@ struct CSVDirectoryData {
         return *this;
     }
 
-    CSVDirectoryData &code_extractor(std::function<std::string(std::string)> fun) {
+    CSVDirectoryData &set_code_extractor(std::function<std::string(std::string)> fun) {
         sp->code_extractor(fun);
         return *this;
     };
@@ -249,7 +250,9 @@ struct GenericCommonDataFeed {
 };
 
 struct GenericPriceDataFeed {
-    std::shared_ptr<GenericPriceDataImpl> sp;
+    GenericPriceDataFeed() = default;
+
+    std::shared_ptr<GenericPriceDataImpl> sp = nullptr;
 
     GenericPriceDataFeed(const CSVTabularData &data) : sp(data.sp) {}
 
@@ -489,6 +492,9 @@ inline CSVDirectoryDataImpl::CSVDirectoryDataImpl(const std::string &raw_data_di
 }
 
 inline void CSVDirectoryDataImpl::init() {
+    fmt::print(fmt::fg(fmt::color::yellow), "Reading asset pricing data in directory {}\n",
+               raw_data_dir);
+    codes_.clear();
     for (const auto &entry : std::filesystem::directory_iterator(raw_data_dir)) {
         auto file_path = entry.path().filename();
         auto adj_file_path = std::filesystem::path(adj_data_dir) / file_path;

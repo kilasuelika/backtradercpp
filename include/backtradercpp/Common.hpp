@@ -14,6 +14,7 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
+#include <fort.hpp>
 
 #include "util.hpp"
 
@@ -210,7 +211,7 @@ struct PortfolioItem {
                                // 11 -> investment doesn't change. So only record if same direction.
     ptime buying_time;         // Initial buying.
 
-    double value = 0, profit = 0, dyn_adj_profit = 0, adj_profit;
+    double value = 0, profit = 0, dyn_adj_profit = 0, adj_profit = 0;
     time_duration holding_time = hours(0);
 
     void update_value(const ptime &time, double new_price, double new_adj_price);
@@ -218,6 +219,8 @@ struct PortfolioItem {
 struct Portfolio {
     double cash = 0;
     std::map<int, PortfolioItem> portfolio_items;
+    double holding_value = 0;
+    double total_value = 0;
 
     int position(int asset) const;
     double profit(int asset) const;
@@ -229,6 +232,10 @@ struct Portfolio {
     VecArrXd dyn_adj_profits(int total_assets) const;
 
     void update(const Order &order, double adj_price);
+    void update_info();
+
+    void transfer_stock(ptime time, int asset, int volume);
+    void transfer_cash(int cash);
 };
 #define BK_DEFINE_PORTFOLIO_MEMBER_ACCESSOR(var, type, default_val)                                \
     inline type Portfolio::var(int asset) const {                                                  \
@@ -308,6 +315,13 @@ void Portfolio::update(const Order &order, double adj_price) {
                                   .profit = -order.fee,
                                   .dyn_adj_profit = -order.fee,
                                   .adj_profit = -order.fee};
+    }
+}
+
+inline void backtradercpp::Portfolio::update_info() {
+    total_value = cash;
+    for (const auto &[asset, item] : portfolio_items) {
+        total_value += item.value;
     }
 }
 
@@ -391,4 +405,19 @@ BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR(VecArrXb, bool, valid);
 // template <typename T> void FeedDataBuffer<T>::set_window(int window)
 #undef BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR
 #undef BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR
+
+inline void Portfolio::transfer_stock(ptime time, int asset, int volume) {
+    auto it = portfolio_items.find(asset);
+    if (it != portfolio_items.end()) { // Found
+        auto &item = it->second;
+        item.position += volume;
+    } else {
+        PortfolioItem item;
+        item.position = volume;
+        item.buying_time = time;
+        portfolio_items[asset] = item;
+    }
+}
+
+inline void Portfolio::transfer_cash(int cash) { this->cash += cash; }
 } // namespace backtradercpp

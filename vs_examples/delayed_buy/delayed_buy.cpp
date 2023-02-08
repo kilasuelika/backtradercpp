@@ -29,10 +29,10 @@ struct SimpleStrategy : strategy::GenericStrategy {
 int main() {
     Cerebro cerebro;
 
-    cerebro.add_data(
-        std::make_shared<feeds::CSVTabularDataImpl>("../../example_data/CSVTabular/djia.csv",
-                                                    feeds::TimeStrConv::non_delimited_date),
-        std::make_shared<broker::BrokerImpl>(10000, 0.0005, 0.001), 2); // 2 for window
+    cerebro.add_broker(broker::BaseBroker(10000, 0.0005, 0.001)
+                           .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
+                                                           feeds::TimeStrConv::non_delimited_date)),
+                       2); // 2 for window
     cerebro.set_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }

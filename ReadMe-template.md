@@ -1,16 +1,17 @@
 # backtradercpp -- A header-only C++ 20 back testing library
 
-As the name suggests, this library is partially inspired by `backtrader` on Python. In my own use, `backtrader` constantly made me confusing so I decide to write my own library.
+As the name suggesting, this library is partially inspired by `backtrader` on Python. In my own use, `backtrader` constantly made me confusing so I decide to write my own library.
 
 ## Install
 
 It's a header only library. But you need to install some dependencies. On windows:
 ```
-./vcpkg install boost:x64-windows eigen3:x64-windows fmt:x64-windows
+./vcpkg install boost:x64-windows eigen3:x64-windows fmt:x64-windows libfort:x64-windows
 ```
 
 
 ## Example
+
 See `vs_examples`.
 
 ### Most basic example
@@ -51,15 +52,25 @@ In this example, stock data are simulated from geometric brownian motion and sto
 ![[vs_examples/option_hedging/option_hedging.cpp]]
 ```
 
+### Use Dividen Data
+
+In this example, dividen data for stocks are add through `StockBroker.set_xrd_dir(dir, columns)`. In the dir, dividen for each stock are stored in separated files. `columns` is a vector of length 5 to specify column indices (0 start) for `record date` (登记日), `execution date` (除权除息日), `bonus` (送股), `additional` (转增股) and `dividen` (分红). The unit is 10 stocks. For example, `bonus=5` means if you have 1000 stocks, then you will get extra `1000/10*5=500` stocks.
+
+```cpp
+![[vs_examples/stock_xrd/stock_xrd.cpp]]
+```
+
 ## Important Notes
 
 1. The library will read data row by row. So you must sort data before running. Also note that currently data sources doesn't deal with thousands separator. Please preprocess data before.
 
-2. Link to `OpenMP` to accelerate.
+2. Link to `OpenMP` for accelerating.
 
-3. You need to fill missing data in middle otherwise there may be extra-ordinary loss, although the final wealth may won't be affected. For example, if some holding assets doesn't have prices in middle, then values of them will suddendly become 0.
+3. If some asset prices are missing in middle, then portfolio value will be the last availiable one. However in `Position.csv` of log file (after set_log_dir), there will be a `State` column to indicate whether data is availiable.
 
 4. Different data may have different time span, the library will align data automatically for you.
+
+5. Internally, all assets data are stored in a vector even if some assets are not valid at that time. It may bring performance issues.
 
 ## Reference
 
@@ -67,7 +78,7 @@ In this example, stock data are simulated from geometric brownian motion and sto
 
 ```cpp
 boost::posix_time::ptime time(); // Current time.
-int time_index();  //Count of days.
+int time_index();  //Count of days (0 start).  
 
 FullAssetData &data(int broker);  	
 	VecArrXd data(broker).open(int i=-1);  //-1 means latest (today) in window, -2 means previous day.

@@ -1,16 +1,17 @@
 # backtradercpp -- A header-only C++ 20 back testing library
 
-As the name suggests, this library is partially inspired by `backtrader` of python. However `backtrader` constantly made me confusing so I decide to write my own library.
+As the name suggesting, this library is partially inspired by `backtrader` on Python. In my own use, `backtrader` constantly made me confusing so I decide to write my own library.
 
 ## Install
 
-It's a header only library. However you need to install some dependencies. On windows:
+It's a header only library. But you need to install some dependencies. On windows:
 ```
-./vcpkg install boost:x64-windows eigen3:x64-windows fmt:x64-windows
+./vcpkg install boost:x64-windows eigen3:x64-windows fmt:x64-windows libfort:x64-windows
 ```
 
 
 ## Example
+
 See `vs_examples`.
 
 ### Most basic example
@@ -38,10 +39,10 @@ int main() {
     Cerebro cerebro;
     // non_delimit_date is a function that convert date string like "20200101" to standard format.
     //  0.0005 and 0.001 are commission rate for long and short trading.
-    cerebro.add_asset_data(
-        feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
-                              feeds::TimeStrConv::non_delimited_date),
-        broker::Broker(0.0005, 0.001));
+    cerebro.add_broker(
+        broker::BaseBroker(0.0005, 0.001)
+            .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
+                                            feeds::TimeStrConv::non_delimited_date)));
     cerebro.set_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }
@@ -68,10 +69,10 @@ struct EqualWeightStrategy : strategy::GenericStrategy {
 
 int main() {
     Cerebro cerebro;
-    cerebro.add_asset_data(
-        feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
-                              feeds::TimeStrConv::delimited_date),
-        broker::Broker(1000000, 0.0005, 0.001), 2); // 2 for window
+    cerebro.add_broker(broker::BaseBroker(1000000, 0.0005, 0.001)
+                           .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
+                                                           feeds::TimeStrConv::non_delimited_date)),
+                       2); // 2 for window
     cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());
     cerebro.run();
 }
@@ -113,10 +114,10 @@ struct SimpleStrategy : strategy::GenericStrategy {
 int main() {
     Cerebro cerebro;
 
-    cerebro.add_data(
-        std::make_shared<feeds::CSVTabularDataImpl>("../../example_data/CSVTabular/djia.csv",
-                                                    feeds::TimeStrConv::non_delimited_date),
-        std::make_shared<broker::BrokerImpl>(10000, 0.0005, 0.001), 2); // 2 for window
+    cerebro.add_broker(broker::BaseBroker(10000, 0.0005, 0.001)
+                           .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
+                                                           feeds::TimeStrConv::non_delimited_date)),
+                       2); // 2 for window
     cerebro.set_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }
@@ -133,13 +134,13 @@ using namespace backtradercpp;
 struct EqualWeightStrategy : public strategy::GenericStrategy {
     void run() override {
         // Re-adjust to equal weigh each 30 trading days.
-        //extra_data(0).num(-1, "n");
+        // extra_data(0).num(-1, "n");
         if (data_valid(0)) {
             const auto &pct_change = data(0).num("pct_change");
             fmt::print("{} pct_change: {}\n", codes(0)[0], pct_change.coeffRef(0));
         }
         if (data_valid(1)) {
-            //fmt::print("code : {} , open: {}\n", codes(1)[0], data(1).close(-1, 0));
+            // fmt::print("code : {} , open: {}\n", codes(1)[0], data(1).close(-1, 0));
             util::cout("code: {}\n", codes(1)[0]);
         }
         // std::abort();
@@ -147,38 +148,38 @@ struct EqualWeightStrategy : public strategy::GenericStrategy {
             // fmt::print(fmt::fg(fmt::color::yellow), "Adjusting.\n");
 
             adjust_to_weight_target(0, VecArrXd::Constant(assets(0), 1. / assets(0)));
-
         }
     }
 };
 
 int main() {
     Cerebro cerebro;
-    //code_extractor: extract code form filename.
-    cerebro.add_asset_data(feeds::CSVDirectoryData("../../example_data/CSVDirectory/raw",
-                                                   "../../example_data/CSVDirectory/adjust",
-                                                   std::array{2, 3, 5, 6, 4},
-                                                   feeds::TimeStrConv::delimited_date)
-                           .extra_num_col({{7, "pct_change"}})
-                           .code_extractor([](const std::string &code) {
-                               return code.substr(code.size() - 13, 9);
-                           }),
-                           broker::Broker(10000, 0.0005, 0.001), 2); // 2 for window
-    cerebro.add_asset_data(feeds::CSVDirectoryData(
+    // code_extractor: extract code form filename.
+    cerebro.add_broker(
+        broker::BaseBroker(10000, 0.0005, 0.001)
+            .set_feed(feeds::CSVDirectoryData("../../example_data/CSVDirectory/raw",
+                                              "../../example_data/CSVDirectory/adjust",
+                                              std::array{2, 3, 5, 6, 4},
+                                              feeds::TimeStrConv::delimited_date)
+                          .extra_num_col({{7, "pct_change"}})
+                          .set_code_extractor([](const std::string &code) {
+                              return code.substr(code.size() - 13, 9);
+                          })),
+        2); // 2 for window
+    cerebro.add_broker(broker::BaseBroker(100000, 0.0005, 0.001)
+                           .set_feed(feeds::CSVDirectoryData(
                                "../../example_data/CSVDirectory/share_index_future",
-                               std::array{2, 3, 5, 6, 4},
-                               feeds::TimeStrConv::delimited_date)
-                           ,
-                           broker::Broker(100000, 0.0005, 0.001), 2);
+                               std::array{2, 3, 5, 6, 4}, feeds::TimeStrConv::delimited_date)),
+                       2);
     cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());
     cerebro.set_range(date(2015, 6, 1), date(2022, 6, 1));
     cerebro.run();
 }
 ```
 
-### Option delta hedging and use common data
+### Option delta hedging and common data
 
-In this example, stock data are simulated from geometric brownian motion and stored in a csv file. Option prices for each period are calculated from BSM and stored in another CSV file. There is an extra csv file for storing information of option pricing. Then in strategy, we first buy options and short stocks with delta periodicly.
+In this example, stock data are simulated from geometric brownian motion and stored in a csv file. Option prices for each period are calculated from BSM and stored in another CSV file. There is an extra csv file for storing information of option pricing. Then in strategy, we buy options at begining and short stocks by delta periodicly.
 
 ```cpp
 #include "../../include/backtradercpp/Cerebro.hpp"
@@ -228,43 +229,87 @@ int main() {
     // code_extractor: extract code form filename.
     int window = 2;
     // Option price.
-    cerebro.add_asset_data(feeds::CSVTabularData("../../example_data/Option/Option.csv",
-                                                 feeds::TimeStrConv::delimited_date),
-                           broker::Broker(0).allow_default(), window);
+    cerebro.add_broker(
+        broker::BaseBroker(0).allow_default().set_feed(feeds::CSVTabularData(
+            "../../example_data/Option/Option.csv", feeds::TimeStrConv::delimited_date)),
+        window);
     // Stock price
-    cerebro.add_asset_data(feeds::CSVTabularData("../../example_data/Option/Stock.csv",
-                                                 feeds::TimeStrConv::delimited_date),
-                           broker::Broker(0).allow_short(), window);
+    cerebro.add_broker(
+        broker::BaseBroker(0).allow_short().set_feed(feeds::CSVTabularData(
+            "../../example_data/Option/Stock.csv", feeds::TimeStrConv::delimited_date)),
+        window);
     // Information for option
     cerebro.add_common_data(feeds::CSVCommonData("../../example_data/Option/OptionInfo.csv",
                                                  feeds::TimeStrConv::delimited_date),
                             window);
     auto s = std::make_shared<DeltaOptionHedgingStrategy>();
     cerebro.set_strategy(s);
+    cerebro.set_log_dir("log");
     cerebro.run();
 
     fmt::print(fmt::fg(fmt::color::yellow), "Exact profits: {}\n", -941686);
 }
 ```
 
+### Use Dividen Data
+
+In this example, dividen data for stocks are add through `StockBroker.set_xrd_dir(dir, columns)`. In the dir, dividen for each stock are stored in separated files. `columns` is a vector of length 5 to specify column indices (0 start) for `record date` (\:767b\:8bb0\:65e5), `execution date` (\:9664\:6743\:9664\:606f\:65e5), `bonus` (\:9001\:80a1), `additional` (\:8f6c\:589e\:80a1) and `dividen` (\:5206\:7ea2). The unit is 10 stocks. For example, `bonus=5` means if you have 1000 stocks, then you will get extra `1000/10*5=500` stocks.
+
+```cpp
+#include <iostream>
+#include "../../include/backtradercpp/Cerebro.hpp"
+using namespace backtradercpp;
+using namespace std;
+
+struct SimpleStrategy : strategy::GenericStrategy {
+    void run() override {
+        // Buy assets at 5th day.
+        if (time_index() == 5) {
+            for (int j = 0; j < data(0).assets(); ++j) {
+                if (data(0).valid(-1, j)) {
+                    // Buy 10 asset j at the price of latest day(-1) on the broker 0.
+                    buy(0, j, data(0).open(-1, j), 10);
+                }
+            }
+        }
+    }
+};
+int main() {
+    Cerebro cerebro;
+    // non_delimit_date is a function that convert date string like "20200101" to standard format.
+    //  0.0005 and 0.001 are commission rate for long and short trading.
+    cerebro.add_broker(
+        broker::StockBroker(100000, 0.0005, 0.001)
+            .set_feed(feeds::CSVDirectoryData("../../example_data/CSVDirectory/raw",
+                                              "../../example_data/CSVDirectory/adjust",
+                                              std::array{2, 3, 5, 6, 4},
+                                              feeds::TimeStrConv::delimited_date)
+                          .set_code_extractor([](const std::string &code) {
+                              return code.substr(code.size() - 13, 9);
+                          }))
+            .set_xrd_dir("../../example_data/CSVDirectory/xrd", {7, 6, 2, 3, 4}),
+        2);
+    cerebro.set_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.set_log_dir("log");
+    cerebro.run();
+
+    auto performance = cerebro.performance();
+    fmt::print("Sharepe Ratio: {}\n",
+               performance[0].sharepe); // index 0 for whole. index 1 for broker 0, e.t.c.
+}
+```
+
 ## Important Notes
 
-1. Please use **backward adjusted** data (keep oldest value fixed and adjust following data). When you buy, use **raw price**. I developed an algorithm to deal with backward adjusted data. The core idea is to track the profits under raw price (profti) and adjusted price (dyn_adj_profit). Then the differen `adj_profit - profit` is profits due to external factors. Total wealth will be
-```
-total wealth = cash + asset value under raw price + (dyn_adj_profit - profit)
-```
+1. The library will read data row by row. So you must sort data before running. Also note that currently data sources doesn't deal with thousands separator. Please preprocess data before.
 
-When you sell, a propotion of difference `dyn_adj_profit - profit` will be added to your cash. This means if price adjust is due to dividends, then they will be added to your cash after you sell assets. Although normally they will be direct send to you cash account. But dividens usually are small so I think delayed converting to cash won't too make much difference and I didn't come up with a better idea.
+2. Link to `OpenMP` for accelerating.
 
-Due to forward adjuted prices (keep newest price fixed and adjust older data) may be negative, I'm not sure if my algorithm will work at this case.
+3. If some asset prices are missing in middle, then portfolio value will be the last availiable one. However in `Position.csv` of log file (after set_log_dir), there will be a `State` column to indicate whether data is availiable.
 
-2. The library will read data row by row. So you must sort data before running. Also note that currently data sources doesn't deal with thousands separator. Please preprocess data before.
+4. Different data may have different time span, the library will align data automatically for you.
 
-3. Link to `OpenMP` to accelerate.
-
-4. You need to fill missing data in middle otherwise there may be extra-ordinary loss, although the final wealth may won't be affected. 
-
-5. Different data may have different time span, the library will align data automatically for you.
+5. Internally, all assets data are stored in a vector even if some assets are not valid at that time. It may bring performance issues.
 
 ## Reference
 
@@ -272,7 +317,7 @@ Due to forward adjuted prices (keep newest price fixed and adjust older data) ma
 
 ```cpp
 boost::posix_time::ptime time(); // Current time.
-int time_index();  //Count of days.
+int time_index();  //Count of days (0 start).  
 
 FullAssetData &data(int broker);  	
 	VecArrXd data(broker).open(int i=-1);  //-1 means latest (today) in window, -2 means previous day.

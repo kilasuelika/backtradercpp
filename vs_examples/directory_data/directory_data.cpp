@@ -9,18 +9,17 @@ struct BasicStrategy : public strategy::GenericStrategy {
         if (time_index() % 30 == 0) {
             // fmt::print(fmt::fg(fmt::color::yellow), "Adjusting.\n");
         }
-
-
     }
 };
 
 int main() {
     Cerebro cerebro;
-    cerebro.add_asset_data(feeds::CSVDirectoryData(
-                               "../../example_data/CSVDirectory/raw",
-                               "../../example_data/CSVDirectory/adjust", std::array{2, 3, 5, 6, 4},
-                               feeds::TimeStrConv::delimited_date),
-                           broker::Broker(10000, 0.0005, 0.001), 2); // 2 for window
+    cerebro.add_broker(
+        broker::BaseBroker(10000, 0.0005, 0.001)
+            .set_feed(feeds::CSVDirectoryData(
+                "../../example_data/CSVDirectory/raw", "../../example_data/CSVDirectory/adjust",
+                std::array{2, 3, 5, 6, 4}, feeds::TimeStrConv::delimited_date)),
+        2); // 2 for window
     cerebro.set_strategy(std::make_shared<BasicStrategy>());
     cerebro.run();
 }

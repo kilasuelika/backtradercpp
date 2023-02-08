@@ -133,7 +133,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\backtradercpp\AyalysisUtil.hpp" />
-    <ClInclude Include="..\..\include\backtradercpp\BrokerImpl.hpp" />
+    <ClInclude Include="..\..\include\backtradercpp\BaseBrokerImpl.hpp" />
     <ClInclude Include="..\..\include\backtradercpp\Cerebro.hpp" />
     <ClInclude Include="..\..\include\backtradercpp\Common.hpp" />
     <ClInclude Include="..\..\include\backtradercpp\DataFeeds.hpp" />
