@@ -1,1 +1,0 @@
-E:\Connect\PT\Projects\backtradercpp\vs_examples\option_hedging\x64\Release\option_hedging.vcxproj.CopyComplete

@@ -22,8 +22,8 @@ int main() {
     //  0.0005 and 0.001 are commission rate for long and short trading.
     cerebro.add_broker(
         broker::BaseBroker(0.0005, 0.001)
-            .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
-                                            feeds::TimeStrConv::non_delimited_date)));
+            .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
+                                             feeds::TimeStrConv::non_delimited_date)));
     cerebro.set_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }

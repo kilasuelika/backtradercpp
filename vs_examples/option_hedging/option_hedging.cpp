@@ -47,12 +47,12 @@ int main() {
     int window = 2;
     // Option price.
     cerebro.add_broker(
-        broker::BaseBroker(0).allow_default().set_feed(feeds::CSVTabularData(
+        broker::BaseBroker(0).allow_default().set_feed(feeds::CSVTabPriceData(
             "../../example_data/Option/Option.csv", feeds::TimeStrConv::delimited_date)),
         window);
     // Stock price
     cerebro.add_broker(
-        broker::BaseBroker(0).allow_short().set_feed(feeds::CSVTabularData(
+        broker::BaseBroker(0).allow_short().set_feed(feeds::CSVTabPriceData(
             "../../example_data/Option/Stock.csv", feeds::TimeStrConv::delimited_date)),
         window);
     // Information for option

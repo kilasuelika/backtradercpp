@@ -22,7 +22,7 @@ int main() {
     //  0.0005 and 0.001 are commission rate for long and short trading.
     cerebro.add_broker(
         broker::StockBroker(100000, 0.0005, 0.001)
-            .set_feed(feeds::CSVDirectoryData("../../example_data/CSVDirectory/raw",
+            .set_feed(feeds::CSVDirPriceData("../../example_data/CSVDirectory/raw",
                                               "../../example_data/CSVDirectory/adjust",
                                               std::array{2, 3, 5, 6, 4},
                                               feeds::TimeStrConv::delimited_date)

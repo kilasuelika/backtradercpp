@@ -103,13 +103,13 @@ struct CSVRowParaser {
 };
 
 // For tabluar pricing data. OHLC are the same.
-class CSVTabularDataImpl : public GenericPriceDataImpl {
+class CSVTabDataImpl : public GenericPriceDataImpl {
   public:
-    CSVTabularDataImpl(const std::string &raw_data_file,
-                       TimeStrConv::func_type time_converter = nullptr);
+    CSVTabDataImpl(const std::string &raw_data_file,
+                   TimeStrConv::func_type time_converter = nullptr);
     // You have to ensure that two file have the same rows.
-    CSVTabularDataImpl(const std::string &raw_data_file, const std::string &adjusted_data_file,
-                       TimeStrConv::func_type time_converter = nullptr);
+    CSVTabDataImpl(const std::string &raw_data_file, const std::string &adjusted_data_file,
+                   TimeStrConv::func_type time_converter = nullptr);
     bool read() override;
     void reset() override {
         GenericPriceDataImpl::reset();
@@ -125,24 +125,23 @@ class CSVTabularDataImpl : public GenericPriceDataImpl {
     std::string next_row_, adj_next_row_;
 };
 
-class CSVDirectoryDataImpl : public GenericPriceDataImpl {
+class CSVDirDataImpl : public GenericPriceDataImpl {
   public:
     // tohlc_map: column number of time, open, high, low, close
-    CSVDirectoryDataImpl(const std::string &raw_data_dir,
-                         std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
-                         TimeStrConv::func_type time_converter = nullptr);
-    CSVDirectoryDataImpl(const std::string &raw_data_dir, const std::string &adj_data_dir,
-                         std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
-                         TimeStrConv::func_type time_converter = nullptr);
+    CSVDirDataImpl(const std::string &raw_data_dir, std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                   TimeStrConv::func_type time_converter = nullptr);
+    CSVDirDataImpl(const std::string &raw_data_dir, const std::string &adj_data_dir,
+                   std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                   TimeStrConv::func_type time_converter = nullptr);
     bool read() override;
     // void init_extra_data();
 
     // Column name will be read form files.
-    CSVDirectoryDataImpl &extra_num_col(const std::vector<std::pair<int, std::string>> &cols);
+    CSVDirDataImpl &extra_num_col(const std::vector<std::pair<int, std::string>> &cols);
 
-    CSVDirectoryDataImpl &extra_str_col(const std::vector<std::pair<int, std::string>> &cols);
+    CSVDirDataImpl &extra_str_col(const std::vector<std::pair<int, std::string>> &cols);
 
-    CSVDirectoryDataImpl &code_extractor(std::function<std::string(std::string)> fun) {
+    CSVDirDataImpl &code_extractor(std::function<std::string(std::string)> fun) {
         // this->code_extractor_ = fun;
         for (auto &ele : codes_) {
             ele = fun(ele);
@@ -206,7 +205,7 @@ class CSVCommonDataImpl : public GenericDataImpl<CommonFeedData> {
 
 // ---------------------------------------------------------------------------------
 
-struct GenericCommonDataFeed {
+struct BaseCommonDataFeed {
     std::shared_ptr<GenericDataImpl<CommonFeedData>> sp;
 
     bool read() { return sp->read(); }
@@ -216,31 +215,31 @@ struct GenericCommonDataFeed {
     virtual void reset() { sp->reset(); }
     const auto &name() const { return sp->name(); }
 
-    GenericCommonDataFeed &set_name(const std::string &name) {
+    BaseCommonDataFeed &set_name(const std::string &name) {
         sp->set_name(name);
         return *this;
     }
 };
 // If no str_cols, then all columns are assumed to be numeric.
-struct CSVCommonData : GenericCommonDataFeed {
+struct CSVCommonData : BaseCommonDataFeed {
     std::shared_ptr<CSVCommonDataImpl> sp;
 
     CSVCommonData(const std::string &file, TimeStrConv::func_type time_converter = nullptr,
                   const std::vector<int> &str_cols = {})
         : sp(std::make_shared<CSVCommonDataImpl>(file, time_converter, str_cols)) {
-        GenericCommonDataFeed::sp = sp;
+        BaseCommonDataFeed::sp = sp;
     }
 
     void reset() override { sp->reset(); }
 
     CSVCommonData &set_name(const std::string &name) {
-        GenericCommonDataFeed::set_name(name);
+        BaseCommonDataFeed::set_name(name);
         return *this;
     }
 };
 
-struct GenericPriceDataFeed {
-    GenericPriceDataFeed() = default;
+struct BasePriceDataFeed {
+    BasePriceDataFeed() = default;
 
     std::shared_ptr<GenericPriceDataImpl> sp = nullptr;
 
@@ -254,72 +253,70 @@ struct GenericPriceDataFeed {
 
     const auto &name() const { return sp->name(); }
 
-    GenericPriceDataFeed &set_name(const std::string &name) {
+    BasePriceDataFeed &set_name(const std::string &name) {
         sp->set_name(name);
         return *this;
     }
 };
 
-struct CSVTabularData : GenericPriceDataFeed {
-    std::shared_ptr<CSVTabularDataImpl> sp = nullptr;
+struct CSVTabPriceData : BasePriceDataFeed {
+    std::shared_ptr<CSVTabDataImpl> sp = nullptr;
 
-    CSVTabularData(const std::string &raw_data_file,
-                   TimeStrConv::func_type time_converter = nullptr)
-        : sp(std::make_shared<CSVTabularDataImpl>(raw_data_file, time_converter)) {
-        GenericPriceDataFeed::sp = sp;
+    CSVTabPriceData(const std::string &raw_data_file,
+                    TimeStrConv::func_type time_converter = nullptr)
+        : sp(std::make_shared<CSVTabDataImpl>(raw_data_file, time_converter)) {
+        BasePriceDataFeed::sp = sp;
     }
     // You have to ensure that two file have the same rows.
-    CSVTabularData(const std::string &raw_data_file, const std::string &adjusted_data_file,
-                   TimeStrConv::func_type time_converter = nullptr)
-        : sp(std::make_shared<CSVTabularDataImpl>(raw_data_file, adjusted_data_file,
-                                                  time_converter)) {
-        GenericPriceDataFeed::sp = sp;
+    CSVTabPriceData(const std::string &raw_data_file, const std::string &adjusted_data_file,
+                    TimeStrConv::func_type time_converter = nullptr)
+        : sp(std::make_shared<CSVTabDataImpl>(raw_data_file, adjusted_data_file, time_converter)) {
+        BasePriceDataFeed::sp = sp;
     }
 
     bool read() { return sp->read(); }
 
-    CSVTabularData &set_name(const std::string &name) {
-        GenericPriceDataFeed::set_name(name);
+    CSVTabPriceData &set_name(const std::string &name) {
+        BasePriceDataFeed::set_name(name);
         return *this;
     }
 };
 
-struct CSVDirectoryData : GenericPriceDataFeed {
-    std::shared_ptr<CSVDirectoryDataImpl> sp;
+struct CSVDirPriceData : BasePriceDataFeed {
+    std::shared_ptr<CSVDirDataImpl> sp;
 
-    CSVDirectoryData(const std::string &raw_data_dir,
-                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
-                     TimeStrConv::func_type time_converter = nullptr)
-        : sp(std::make_shared<CSVDirectoryDataImpl>(raw_data_dir, tohlc_map, time_converter)) {
-        GenericPriceDataFeed::sp = sp;
+    CSVDirPriceData(const std::string &raw_data_dir, std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                    TimeStrConv::func_type time_converter = nullptr)
+        : sp(std::make_shared<CSVDirDataImpl>(raw_data_dir, tohlc_map, time_converter)) {
+        BasePriceDataFeed::sp = sp;
     }
-    CSVDirectoryData(const std::string &raw_data_dir, const std::string &adj_data_dir,
-                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
-                     TimeStrConv::func_type time_converter = nullptr)
-        : sp(std::make_shared<CSVDirectoryDataImpl>(raw_data_dir, adj_data_dir, tohlc_map,
-                                                    time_converter)) {
-        GenericPriceDataFeed::sp = sp;
+    CSVDirPriceData(const std::string &raw_data_dir, const std::string &adj_data_dir,
+                    std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
+                    TimeStrConv::func_type time_converter = nullptr)
+        : sp(std::make_shared<CSVDirDataImpl>(raw_data_dir, adj_data_dir, tohlc_map,
+                                              time_converter)) {
+        BasePriceDataFeed::sp = sp;
     }
 
     bool read() { return sp->read(); }
 
-    CSVDirectoryData &extra_num_col(const std::vector<std::pair<int, std::string>> &cols) {
+    CSVDirPriceData &extra_num_col(const std::vector<std::pair<int, std::string>> &cols) {
         sp->extra_num_col(cols);
         return *this;
     }
 
-    CSVDirectoryData &extra_str_col(const std::vector<std::pair<int, std::string>> &cols) {
+    CSVDirPriceData &extra_str_col(const std::vector<std::pair<int, std::string>> &cols) {
         sp->extra_str_col(cols);
         return *this;
     }
 
-    CSVDirectoryData &set_code_extractor(std::function<std::string(std::string)> fun) {
+    CSVDirPriceData &set_code_extractor(std::function<std::string(std::string)> fun) {
         sp->code_extractor(fun);
         return *this;
     }
 
-    CSVDirectoryData &set_name(const std::string &name) {
-        GenericPriceDataFeed::set_name(name);
+    CSVDirPriceData &set_name(const std::string &name) {
+        BasePriceDataFeed::set_name(name);
         return *this;
     }
 };
@@ -368,9 +365,9 @@ template <typename DataT, typename FeedT, typename BufferT> class GenericFeedsAg
 };
 
 using PriceFeedAggragator =
-    GenericFeedsAggragator<PriceFeedData, GenericPriceDataFeed, PriceFeedDataBuffer>;
+    GenericFeedsAggragator<PriceFeedData, BasePriceDataFeed, PriceFeedDataBuffer>;
 using CommonFeedAggragator =
-    GenericFeedsAggragator<CommonFeedData, GenericCommonDataFeed, CommonFeedDataBuffer>;
+    GenericFeedsAggragator<CommonFeedData, BaseCommonDataFeed, CommonFeedDataBuffer>;
 
 struct TimeConverter {
     //"20100202"
@@ -404,8 +401,8 @@ double CSVRowParaser::parse_double(const std::string &ele) {
     return res;
 }
 
-inline CSVTabularDataImpl::CSVTabularDataImpl(const std::string &raw_data_file,
-                                              TimeStrConv::func_type time_converter)
+inline CSVTabDataImpl::CSVTabDataImpl(const std::string &raw_data_file,
+                                      TimeStrConv::func_type time_converter)
     : GenericPriceDataImpl(time_converter), raw_data_file_name_(raw_data_file),
       adj_data_file_name_(raw_data_file), raw_data_file_(raw_data_file),
       adj_data_file_(raw_data_file) {
@@ -413,9 +410,9 @@ inline CSVTabularDataImpl::CSVTabularDataImpl(const std::string &raw_data_file,
     init();
 }
 
-CSVTabularDataImpl::CSVTabularDataImpl(const std::string &raw_data_file,
-                                       const std::string &adjusted_data_file,
-                                       TimeStrConv::func_type time_converter)
+CSVTabDataImpl::CSVTabDataImpl(const std::string &raw_data_file,
+                               const std::string &adjusted_data_file,
+                               TimeStrConv::func_type time_converter)
     : GenericPriceDataImpl(time_converter) {
     backtradercpp::util::check_path_exists(raw_data_file);
     backtradercpp::util::check_path_exists(adjusted_data_file);
@@ -426,7 +423,7 @@ CSVTabularDataImpl::CSVTabularDataImpl(const std::string &raw_data_file,
     init();
 }
 
-void CSVTabularDataImpl::init() {
+void CSVTabDataImpl::init() {
 
     raw_data_file_ = std::ifstream(raw_data_file_name_);
     adj_data_file_ = std::ifstream(adj_data_file_name_);
@@ -449,8 +446,7 @@ void CSVTabularDataImpl::init() {
     GenericPriceDataImpl::init();
 }
 
-inline void CSVTabularDataImpl::cast_ohlc_data_(std::vector<std::string> &row_string,
-                                                OHLCData &dest) {
+inline void CSVTabDataImpl::cast_ohlc_data_(std::vector<std::string> &row_string, OHLCData &dest) {
     for (int i = 0; i < assets_; ++i) {
         // dest.open.coeffRef(i) = std::numeric_limits<double>::quiet_NaN();
         dest.open.coeffRef(i) = 0;
@@ -465,7 +461,7 @@ inline void CSVTabularDataImpl::cast_ohlc_data_(std::vector<std::string> &row_st
     dest.high = dest.low = dest.close = dest.open;
 };
 
-inline bool CSVTabularDataImpl::read() {
+inline bool CSVTabDataImpl::read() {
     std::getline(raw_data_file_, next_row_);
     if (raw_data_file_.eof()) {
         finished_ = true;
@@ -550,24 +546,22 @@ void GenericFeedsAggragator<DataT, FeedT, BufferT>::reset() {
     }
 }
 
-inline CSVDirectoryDataImpl::CSVDirectoryDataImpl(const std::string &raw_data_dir,
-                                                  std::array<int, 5> tohlc_map,
-                                                  TimeStrConv::func_type time_converter)
+inline CSVDirDataImpl::CSVDirDataImpl(const std::string &raw_data_dir, std::array<int, 5> tohlc_map,
+                                      TimeStrConv::func_type time_converter)
     : GenericPriceDataImpl(time_converter), raw_data_dir(raw_data_dir), adj_data_dir(raw_data_dir),
       tohlc_map(tohlc_map) {
     init();
 }
 
-inline CSVDirectoryDataImpl::CSVDirectoryDataImpl(const std::string &raw_data_dir,
-                                                  const std::string &adj_data_dir,
-                                                  std::array<int, 5> tohlc_map,
-                                                  TimeStrConv::func_type time_converter)
+inline CSVDirDataImpl::CSVDirDataImpl(const std::string &raw_data_dir,
+                                      const std::string &adj_data_dir, std::array<int, 5> tohlc_map,
+                                      TimeStrConv::func_type time_converter)
     : GenericPriceDataImpl(time_converter), raw_data_dir(raw_data_dir), adj_data_dir(adj_data_dir),
       tohlc_map(tohlc_map) {
     init();
 }
 
-inline void CSVDirectoryDataImpl::init() {
+inline void CSVDirDataImpl::init() {
     fmt::print(fmt::fg(fmt::color::yellow), "Reading asset pricing data in directory {}\n",
                raw_data_dir);
     codes_.clear();
@@ -614,7 +608,7 @@ inline void CSVDirectoryDataImpl::init() {
 
 #define UNWRAP(...) __VA_ARGS__
 #define BK_CSVDirectoryDataImpl_extra_col(name, init)                                              \
-    inline CSVDirectoryDataImpl &CSVDirectoryDataImpl::extra_##name##_col(                         \
+    inline CSVDirDataImpl &CSVDirDataImpl::extra_##name##_col(                                     \
         const std::vector<std::pair<int, std::string>> &cols) {                                    \
         for (const auto &col : cols) {                                                             \
             extra_##name##_col_.emplace_back(col.first);                                           \
@@ -633,7 +627,7 @@ BK_CSVDirectoryDataImpl_extra_col(str, UNWRAP(std::vector<std::string>(assets_))
 #undef BK_CSVDirectoryDataImpl_extra_col
 #undef UNWRAP
 
-bool CSVDirectoryDataImpl::read() {
+bool CSVDirDataImpl::read() {
 
     next_.reset();
     // read data.

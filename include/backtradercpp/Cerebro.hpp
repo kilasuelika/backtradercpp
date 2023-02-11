@@ -2,7 +2,7 @@
 /*ZhouYao at 2022-09-10*/
 
 #include "DataFeeds.hpp"
-#include "BaseBrokerImpl.hpp"
+#include "Broker.hpp"
 #include "Strategy.hpp"
 #define SPDLOG_FMT_EXTERNAL
 #include <spdlog/stopwatch.h>
@@ -15,7 +15,7 @@ class Cerebro {
   public:
     // window is for strategy. DataFeed and Broker doesn't store history data.
     void add_broker(broker::BaseBroker broker, int window = 1);
-    void add_common_data(feeds::GenericCommonDataFeed data, int window);
+    void add_common_data(feeds::BaseCommonDataFeed data, int window);
 
     // void init_feeds_aggrator_();
     void set_strategy(std::shared_ptr<strategy::GenericStrategy> strategy);
@@ -53,7 +53,7 @@ void Cerebro::add_broker(broker::BaseBroker broker, int window) {
     price_feeds_agg_.set_window(price_feeds_agg_.datas().size() - 1, window);
     broker_agg_.add_broker(broker);
 }
-void Cerebro::add_common_data(feeds::GenericCommonDataFeed data, int window) {
+void Cerebro::add_common_data(feeds::BaseCommonDataFeed data, int window) {
     common_feeds_agg_.add_feed(data);
     common_feeds_agg_.set_window(common_feeds_agg_.datas().size() - 1, window);
 };

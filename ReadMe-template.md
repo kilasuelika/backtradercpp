@@ -95,7 +95,8 @@ FullAssetData &data(int broker);
 	                      adj_open(), adj_high(), adj_low(), adj_close();
 	VecXrrXb data(broker).valid(int i=-1);  //If asset is valid.
 
-int assets(int broker);  //Number of assets.
+//Number of assets.
+int assets(int broker);  
 double cash(int broker);
 
 const VecArrXi &positions(int broker) ; //A full length vector (may contain 0 if didn't buy some assets) of position on each asset.
@@ -110,7 +111,6 @@ using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
 using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
 ```
 
-### 
+### Core logic
 
-## Code Structure
-1. FeedData(ohld_data, num_data_, str_data_) -> Generic(FeedData) -> FeedAggragator(FullAssetData)
+1. `Broker.hpp` - `BaseBrokerImpl.process()`: process orders.
