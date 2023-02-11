@@ -41,8 +41,8 @@ int main() {
     //  0.0005 and 0.001 are commission rate for long and short trading.
     cerebro.add_broker(
         broker::BaseBroker(0.0005, 0.001)
-            .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
-                                            feeds::TimeStrConv::non_delimited_date)));
+            .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
+                                             feeds::TimeStrConv::non_delimited_date)));
     cerebro.set_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }
@@ -69,10 +69,11 @@ struct EqualWeightStrategy : strategy::GenericStrategy {
 
 int main() {
     Cerebro cerebro;
-    cerebro.add_broker(broker::BaseBroker(1000000, 0.0005, 0.001)
-                           .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
-                                                           feeds::TimeStrConv::non_delimited_date)),
-                       2); // 2 for window
+    cerebro.add_broker(
+        broker::BaseBroker(1000000, 0.0005, 0.001)
+            .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
+                                             feeds::TimeStrConv::non_delimited_date)),
+        2); // 2 for window
     cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());
     cerebro.run();
 }
@@ -114,10 +115,11 @@ struct SimpleStrategy : strategy::GenericStrategy {
 int main() {
     Cerebro cerebro;
 
-    cerebro.add_broker(broker::BaseBroker(10000, 0.0005, 0.001)
-                           .set_feed(feeds::CSVTabularData("../../example_data/CSVTabular/djia.csv",
-                                                           feeds::TimeStrConv::non_delimited_date)),
-                       2); // 2 for window
+    cerebro.add_broker(
+        broker::BaseBroker(10000, 0.0005, 0.001)
+            .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
+                                             feeds::TimeStrConv::non_delimited_date)),
+        2); // 2 for window
     cerebro.set_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }
@@ -157,17 +159,17 @@ int main() {
     // code_extractor: extract code form filename.
     cerebro.add_broker(
         broker::BaseBroker(10000, 0.0005, 0.001)
-            .set_feed(feeds::CSVDirectoryData("../../example_data/CSVDirectory/raw",
-                                              "../../example_data/CSVDirectory/adjust",
-                                              std::array{2, 3, 5, 6, 4},
-                                              feeds::TimeStrConv::delimited_date)
+            .set_feed(feeds::CSVDirPriceData("../../example_data/CSVDirectory/raw",
+                                             "../../example_data/CSVDirectory/adjust",
+                                             std::array{2, 3, 5, 6, 4},
+                                             feeds::TimeStrConv::delimited_date)
                           .extra_num_col({{7, "pct_change"}})
                           .set_code_extractor([](const std::string &code) {
                               return code.substr(code.size() - 13, 9);
                           })),
         2); // 2 for window
     cerebro.add_broker(broker::BaseBroker(100000, 0.0005, 0.001)
-                           .set_feed(feeds::CSVDirectoryData(
+                           .set_feed(feeds::CSVDirPriceData(
                                "../../example_data/CSVDirectory/share_index_future",
                                std::array{2, 3, 5, 6, 4}, feeds::TimeStrConv::delimited_date)),
                        2);
@@ -231,12 +233,12 @@ int main() {
     int window = 2;
     // Option price.
     cerebro.add_broker(
-        broker::BaseBroker(0).allow_default().set_feed(feeds::CSVTabularData(
+        broker::BaseBroker(0).allow_default().set_feed(feeds::CSVTabPriceData(
             "../../example_data/Option/Option.csv", feeds::TimeStrConv::delimited_date)),
         window);
     // Stock price
     cerebro.add_broker(
-        broker::BaseBroker(0).allow_short().set_feed(feeds::CSVTabularData(
+        broker::BaseBroker(0).allow_short().set_feed(feeds::CSVTabPriceData(
             "../../example_data/Option/Stock.csv", feeds::TimeStrConv::delimited_date)),
         window);
     // Information for option
@@ -281,7 +283,7 @@ int main() {
     //  0.0005 and 0.001 are commission rate for long and short trading.
     cerebro.add_broker(
         broker::StockBroker(100000, 0.0005, 0.001)
-            .set_feed(feeds::CSVDirectoryData("../../example_data/CSVDirectory/raw",
+            .set_feed(feeds::CSVDirPriceData("../../example_data/CSVDirectory/raw",
                                               "../../example_data/CSVDirectory/adjust",
                                               std::array{2, 3, 5, 6, 4},
                                               feeds::TimeStrConv::delimited_date)
@@ -353,14 +355,14 @@ int main() {
     int window = 2;
     // Option price.
     cerebro.add_broker(broker::BaseBroker(0).allow_default().set_feed(
-                           feeds::CSVTabularData("../../example_data/Option/Option.csv",
-                                                 feeds::TimeStrConv::delimited_date)
+                           feeds::CSVTabPriceData("../../example_data/Option/Option.csv",
+                                                  feeds::TimeStrConv::delimited_date)
                                .set_name("option")),
                        window);
     // Stock price
     cerebro.add_broker(broker::BaseBroker(0).allow_short().set_feed(
-                           feeds::CSVTabularData("../../example_data/Option/Stock.csv",
-                                                 feeds::TimeStrConv::delimited_date)
+                           feeds::CSVTabPriceData("../../example_data/Option/Stock.csv",
+                                                  feeds::TimeStrConv::delimited_date)
                                .set_name("stock")),
                        window);
     // Information for option
@@ -417,7 +419,8 @@ FullAssetData &data(int broker);
 	                      adj_open(), adj_high(), adj_low(), adj_close();
 	VecXrrXb data(broker).valid(int i=-1);  //If asset is valid.
 
-int assets(int broker);  //Number of assets.
+//Number of assets.
+int assets(int broker);  
 double cash(int broker);
 
 const VecArrXi &positions(int broker) ; //A full length vector (may contain 0 if didn't buy some assets) of position on each asset.
@@ -432,7 +435,6 @@ using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
 using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
 ```
 
-### 
+### Core logic
 
-## Code Structure
-1. FeedData(ohld_data, num_data_, str_data_) -> Generic(FeedData) -> FeedAggragator(FullAssetData)
+1. `Broker.hpp` - `BaseBrokerImpl.process()`: process orders.
