@@ -24,7 +24,7 @@ using namespace std;
 
 struct SimpleStrategy : strategy::GenericStrategy {
     void run() override {
-        // Buy assets at 5th day.
+        // Buy assets at 6th day. Index starts from 0, so index 5 means 6th day.
         if (time_index() == 5) {
             for (int j = 0; j < data(0).assets(); ++j) {
                 if (data(0).valid(-1, j)) {
@@ -196,7 +196,7 @@ struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
         // Buy options at the first time.
         if (time_index() == 0) {
             VecArrXi target_C(assets(0));
-            target_C.setConstant(100);
+            target_C.setConstant(100); // Buy 100 options for each path.
             adjust_to_volume_target(0, target_C);
         }
 
@@ -204,6 +204,7 @@ struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
         if (time_index() % period == 0) {
             VecArrXi target_S(assets(1));
 
+            // Accessing read common data.
             double sigma = common_data(0).num(-1, "sigma");
             double K = common_data(0).num(-1, "K");
             double rf = common_data(0).num(-1, "rf");
@@ -242,8 +243,8 @@ int main() {
     cerebro.add_common_data(feeds::CSVCommonData("../../example_data/Option/OptionInfo.csv",
                                                  feeds::TimeStrConv::delimited_date),
                             window);
-    auto s = std::make_shared<DeltaOptionHedgingStrategy>();
-    cerebro.set_strategy(s);
+
+    cerebro.set_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
     cerebro.set_log_dir("log");
     cerebro.run();
 
@@ -251,9 +252,9 @@ int main() {
 }
 ```
 
-### Use Dividen Data
+### Use dividen data
 
-In this example, dividen data for stocks are add through `StockBroker.set_xrd_dir(dir, columns)`. In the dir, dividen for each stock are stored in separated files. `columns` is a vector of length 5 to specify column indices (0 start) for `record date` (\:767b\:8bb0\:65e5), `execution date` (\:9664\:6743\:9664\:606f\:65e5), `bonus` (\:9001\:80a1), `additional` (\:8f6c\:589e\:80a1) and `dividen` (\:5206\:7ea2). The unit is 10 stocks. For example, `bonus=5` means if you have 1000 stocks, then you will get extra `1000/10*5=500` stocks.
+In this example, dividen data for stocks are add through `StockBroker.set_xrd_dir(dir, columns)`. In the dir, dividen for each stock are stored in separated files. `columns` is a vector of length 5 to specify column indices (0 start) for `record date` (登记日), `execution date` (除权除息日), `bonus` (送股), `additional` (转增股) and `dividen` (分红). The unit is 10 stocks. For example, `bonus=5` means if you have 1000 stocks, then you will get extra `1000/10*5=500` stocks.
 
 ```cpp
 #include <iostream>
@@ -299,13 +300,103 @@ int main() {
 }
 ```
 
+### Repeat run with modified settings
+
+In this example, we compare performances between different commission rates.
+
+```cpp
+#include "../../include/backtradercpp/Cerebro.hpp"
+#include <boost/math/distributions.hpp>
+using namespace backtradercpp;
+
+struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
+    explicit DeltaOptionHedgingStrategy(int period = 1) : period(period) {}
+
+    int period = 1;
+
+    void run() override {
+
+        // Buy options at the first time.
+        if (time_index() == 0) {
+            VecArrXi target_C(assets("option"));
+            target_C.setConstant(100); // Buy 100 options for each path.
+            adjust_to_volume_target("option", target_C);
+        }
+        // Short stocks.
+        if (time_index() % period == 0) {
+            VecArrXi target_S(assets("stock"));
+
+            // Accessing read common data.
+            double sigma = common_data("option").num(-1, "sigma");
+            double K = common_data("option").num(-1, "K");
+            double rf = common_data("option").num(-1, "rf");
+
+            for (int i = 0; i < assets("stock"); ++i) {
+                double S = data("stock").close(-1, i);
+                double T = common_data("option").num(-1, "time");
+
+                double d1 =
+                    (std::log(S / K) + (rf + sigma * sigma / 2) * T) / (sigma * std::sqrt(T));
+                double delta = boost::math::cdf(boost::math::normal(), d1);
+
+                target_S.coeffRef(i) = -int(delta * 100);
+            }
+
+            adjust_to_volume_target("stock", target_S);
+        }
+    }
+};
+
+int main() {
+    Cerebro cerebro;
+    // code_extractor: extract code form filename.
+    int window = 2;
+    // Option price.
+    cerebro.add_broker(broker::BaseBroker(0).allow_default().set_feed(
+                           feeds::CSVTabularData("../../example_data/Option/Option.csv",
+                                                 feeds::TimeStrConv::delimited_date)
+                               .set_name("option")),
+                       window);
+    // Stock price
+    cerebro.add_broker(broker::BaseBroker(0).allow_short().set_feed(
+                           feeds::CSVTabularData("../../example_data/Option/Stock.csv",
+                                                 feeds::TimeStrConv::delimited_date)
+                               .set_name("stock")),
+                       window);
+    // Information for option
+    cerebro.add_common_data(feeds::CSVCommonData("../../example_data/Option/OptionInfo.csv",
+                                                 feeds::TimeStrConv::delimited_date)
+                                .set_name("option"),
+                            window);
+
+    cerebro.set_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
+    cerebro.set_log_dir("log");
+    cerebro.set_verbose(OnlySummary);
+    cerebro.run();
+
+    fmt::print(fmt::fg(fmt::color::yellow), "Exact profits: {}\n", -941686);
+    double profit0 =
+        cerebro.performance()[0]
+            .profit; // index 0 for performance of overall portfolio. Index 1 is for the 0th broker.
+
+    // Run once more.
+    cerebro.reset();
+    cerebro.broker("stock").set_commission_rate(0.001, 0.001);
+    cerebro.set_log_dir("log1");
+    cerebro.run();
+    double profit1 = cerebro.performance()[0].profit;
+
+    fmt::print("Profits under 0 and 0.001 commission rate: {}, {}\n", profit0, profit1);
+}
+```
+
 ## Important Notes
 
 1. The library will read data row by row. So you must sort data before running. Also note that currently data sources doesn't deal with thousands separator. Please preprocess data before.
 
 2. Link to `OpenMP` for accelerating.
 
-3. If some asset prices are missing in middle, then portfolio value will be the last availiable one. However in `Position.csv` of log file (after set_log_dir), there will be a `State` column to indicate whether data is availiable.
+3. If some asset prices are missing in middle, then portfolio value will be the last availiable one. In `Position.csv` of log file (after `set_log_dir()`), there will be a `State` column to indicate whether data is availiable.
 
 4. Different data may have different time span, the library will align data automatically for you.
 

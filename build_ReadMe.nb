@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[      2756,         84]
-NotebookOptionsPosition[      2224,         66]
-NotebookOutlinePosition[      2675,         83]
-CellTagsIndexPosition[      2632,         80]
+NotebookDataLength[      5751,        155]
+NotebookOptionsPosition[      4652,        131]
+NotebookOutlinePosition[      5103,        148]
+CellTagsIndexPosition[      5060,        145]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -26,42 +26,107 @@ Cell[BoxData[{
    RowBox[{"NotebookDirectory", "[", "]"}], "]"}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"file", "=", 
-   RowBox[{"Import", "[", 
-    RowBox[{"\"\<ReadMe-template.md\>\"", ",", "\"\<text\>\""}], "]"}]}], 
-  ";"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"file", "=", 
+    RowBox[{"Import", "[", 
+     RowBox[{"\"\<ReadMe-template.md\>\"", ",", "\"\<text\>\"", ",", 
+      RowBox[{"CharacterEncoding", "->", "\"\<UTF8\>\""}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"DeleteFile", "[", "\"\<ReadMe.md\>\"", "]"}], 
   ";"}], "\[IndentingNewLine]", 
- RowBox[{"WriteString", "[", 
-  RowBox[{"\"\<ReadMe.md\>\"", ",", 
-   RowBox[{"StringReplace", "[", 
-    RowBox[{"file", ",", 
-     RowBox[{
-      RowBox[{"\"\<![[\>\"", "~~", 
-       RowBox[{"Shortest", "[", "x__", "]"}], "~~", "\"\<]]\>\""}], ":>", 
-      RowBox[{"Import", "[", 
-       RowBox[{"x", ",", "\"\<Text\>\""}], "]"}]}]}], "]"}]}], 
-  "]"}]}], "Input",
+ RowBox[{"s", "=", 
+  RowBox[{"OpenWrite", "[", 
+   RowBox[{"\"\<ReadMe.md\>\"", ",", 
+    RowBox[{"CharacterEncoding", "->", "\"\<UTF8\>\""}]}], 
+   "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"WriteString", "[", 
+   RowBox[{"s", ",", 
+    RowBox[{"StringReplace", "[", 
+     RowBox[{"file", ",", 
+      RowBox[{
+       RowBox[{"\"\<![[\>\"", "~~", 
+        RowBox[{"Shortest", "[", "x__", "]"}], "~~", "\"\<]]\>\""}], ":>", 
+       RowBox[{"Import", "[", 
+        RowBox[{"x", ",", "\"\<Text\>\"", ",", 
+         RowBox[{"CharacterEncoding", "->", "\"\<UTF8\>\""}]}], "]"}]}]}], 
+     "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Close", "[", "s", "]"}]}], "Input",
  CellChangeTimes->{{3.8718018288903627`*^9, 3.871801893681295*^9}, {
    3.872059129467784*^9, 3.8720591816977444`*^9}, 3.8720592669936466`*^9, {
    3.8720615094543743`*^9, 3.8720615259160323`*^9}, 3.872061730659523*^9, 
    3.8720621424253564`*^9, {3.8720622017147784`*^9, 3.8720622060740547`*^9}, 
-   3.884738114971756*^9},
- CellLabel->"In[1]:=",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
+   3.884738114971756*^9, {3.885090856476989*^9, 3.8850908621819043`*^9}, {
+   3.8850909679150734`*^9, 3.885090991844108*^9}},
+ CellLabel->"In[5]:=",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
 
 Cell[BoxData[
  TemplateBox[{
-  "DeleteFile", "fdnfnd", 
-   "\"Directory or file \
-\\\"\\!\\(\\*RowBox[{\\\"\\\\\\\"ReadMe.md\\\\\\\"\\\"}]\\)\\\" not found.\"",
-    2, 3, 1, 29397603915918874123, "Local"},
+  "DeleteFile", "privv", 
+   "\"Privilege violation for file or directory \
+\\!\\(\\*RowBox[{\\\"\\\\\\\"ReadMe.md\\\\\\\"\\\"}]\\).\"", 2, 7, 1, 
+   29399188354977996619, "Local"},
   "MessageTemplate"]], "Message", "MSG",
- CellChangeTimes->{{3.884849082906781*^9, 3.8848491045023804`*^9}, 
-   3.8848491441969447`*^9},
+ CellChangeTimes->{3.8850909926325192`*^9},
  CellLabel->
   "During evaluation of \
-In[1]:=",ExpressionUUID->"f1dc3bed-11dd-460f-87fd-3f143c46ab06"]
+In[5]:=",ExpressionUUID->"c90494da-f5c0-4e8b-81ab-435f622c45dd"],
+
+Cell[BoxData[
+ TemplateBox[{
+  "OpenWrite", "aofil", 
+   "\"\\!\\(\\*RowBox[{\\\"\\\\\\\"ReadMe.md\\\\\\\"\\\"}]\\) already open as \
+\\!\\(\\*RowBox[{\\\"\\\\\\\"ReadMe.md\\\\\\\"\\\"}]\\).\"", 2, 8, 2, 
+   29399188354977996619, "Local"},
+  "MessageTemplate"]], "Message", "MSG",
+ CellChangeTimes->{3.8850909926575284`*^9},
+ CellLabel->
+  "During evaluation of \
+In[5]:=",ExpressionUUID->"6f2c50e5-44ab-428f-82d6-3a379a3963c7"],
+
+Cell[BoxData[
+ TemplateBox[{
+  "OpenWrite", "noopen", 
+   "\"Cannot open \\!\\(\\*RowBox[{\\\"\\\\\\\"ReadMe.md\\\\\\\"\\\"}]\\).\"",
+    2, 8, 3, 29399188354977996619, "Local"},
+  "MessageTemplate"]], "Message", "MSG",
+ CellChangeTimes->{3.8850909926875277`*^9},
+ CellLabel->
+  "During evaluation of \
+In[5]:=",ExpressionUUID->"1ab1a902-6885-4497-85d5-87c58fb92c94"],
+
+Cell[BoxData["$Failed"], "Output",
+ CellChangeTimes->{3.8850909927065287`*^9},
+ CellLabel->"Out[8]=",ExpressionUUID->"ae97a37e-612c-4b02-a657-a911080337fd"],
+
+Cell[BoxData[
+ TemplateBox[{
+  "WriteString", "strml", 
+   "\"\\!\\(\\*RowBox[{\\\"$Failed\\\"}]\\) is not a string, stream, or list \
+of strings and streams.\"", 2, 9, 4, 29399188354977996619, "Local"},
+  "MessageTemplate"]], "Message", "MSG",
+ CellChangeTimes->{3.8850909927535267`*^9},
+ CellLabel->
+  "During evaluation of \
+In[5]:=",ExpressionUUID->"991d5a19-18f6-4ef1-9ae9-fc3f96565424"],
+
+Cell[BoxData[
+ TemplateBox[{
+  "Close", "stream", 
+   "\"\\!\\(\\*RowBox[{\\\"$Failed\\\"}]\\) is not a string, SocketObject, \
+InputStream[ ], or OutputStream[ ].\"", 2, 10, 5, 29399188354977996619, 
+   "Local"},
+  "MessageTemplate"]], "Message", "MSG",
+ CellChangeTimes->{3.8850909927765265`*^9},
+ CellLabel->
+  "During evaluation of \
+In[5]:=",ExpressionUUID->"05f429d7-851c-4134-ada8-96ce76dc30ca"],
+
+Cell[BoxData[
+ RowBox[{"Close", "[", "$Failed", "]"}]], "Output",
+ CellChangeTimes->{3.88509099278353*^9},
+ CellLabel->"Out[10]=",ExpressionUUID->"50bd4d46-c0fc-42d9-b456-acd18e38e627"]
 }, Open  ]]
 },
 WindowSize->{581.4, 524.4},
@@ -83,8 +148,14 @@ CellTagsIndex->{}
 (*NotebookFileOutline
 Notebook[{
 Cell[CellGroupData[{
-Cell[580, 22, 1179, 28, 137, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
-Cell[1762, 52, 446, 11, 30, "Message",ExpressionUUID->"f1dc3bed-11dd-460f-87fd-3f143c46ab06"]
+Cell[580, 22, 1706, 39, 220, "Input",ExpressionUUID->"92ae036a-e4cd-42b7-81dc-731365bc4de5"],
+Cell[2289, 63, 399, 10, 30, "Message",ExpressionUUID->"c90494da-f5c0-4e8b-81ab-435f622c45dd"],
+Cell[2691, 75, 428, 10, 30, "Message",ExpressionUUID->"6f2c50e5-44ab-428f-82d6-3a379a3963c7"],
+Cell[3122, 87, 367, 9, 30, "Message",ExpressionUUID->"1ab1a902-6885-4497-85d5-87c58fb92c94"],
+Cell[3492, 98, 156, 2, 35, "Output",ExpressionUUID->"ae97a37e-612c-4b02-a657-a911080337fd"],
+Cell[3651, 102, 392, 9, 30, "Message",ExpressionUUID->"991d5a19-18f6-4ef1-9ae9-fc3f96565424"],
+Cell[4046, 113, 402, 10, 30, "Message",ExpressionUUID->"05f429d7-851c-4134-ada8-96ce76dc30ca"],
+Cell[4451, 125, 185, 3, 57, "Output",ExpressionUUID->"50bd4d46-c0fc-42d9-b456-acd18e38e627"]
 }, Open  ]]
 }
 ]
