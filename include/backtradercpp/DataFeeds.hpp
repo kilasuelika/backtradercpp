@@ -62,22 +62,29 @@ template <typename T> class GenericDataImpl {
     bool finished() const { return finished_; }
     const auto &next() const { return next_; }
 
+    virtual void reset() { finished_ = false; }
+
+    void set_name(const std::string &name) { name_ = name; }
+    const auto &name() { return name_; }
+
   protected:
     TimeStrConv::func_type time_converter_;
 
     T next_;
     bool finished_ = false;
+    std::string name_;
 };
 
 class GenericPriceDataImpl : public GenericDataImpl<PriceFeedData> {
 
   public:
     GenericPriceDataImpl() = default;
-    GenericPriceDataImpl(TimeStrConv::func_type time_converter)
-        : GenericDataImpl<PriceFeedData>(time_converter){};
+    GenericPriceDataImpl(TimeStrConv::func_type time_converter) : GenericDataImpl(time_converter){};
 
     int assets() const { return assets_; }
     const auto &codes() const { return codes_; }
+
+    // void reset() override{}
 
   protected:
     friend class FeedsAggragator;
@@ -104,12 +111,17 @@ class CSVTabularDataImpl : public GenericPriceDataImpl {
     CSVTabularDataImpl(const std::string &raw_data_file, const std::string &adjusted_data_file,
                        TimeStrConv::func_type time_converter = nullptr);
     bool read() override;
+    void reset() override {
+        GenericPriceDataImpl::reset();
+        init();
+    }
 
   private:
     void init() override;
     void cast_ohlc_data_(std::vector<std::string> &row_string, OHLCData &dest);
 
     std::ifstream raw_data_file_, adj_data_file_;
+    std::string raw_data_file_name_, adj_data_file_name_;
     std::string next_row_, adj_next_row_;
 };
 
@@ -141,6 +153,15 @@ class CSVDirectoryDataImpl : public GenericPriceDataImpl {
     // init() must be manunally called. Because in Cerebro::add_data_feed, the evaluation order of
     // data feed and broker are unspecified in C++ standard.
     void init() override;
+    void reset() override {
+        raw_data_filenames.clear();
+        adj_data_filenames.clear();
+
+        raw_files.clear();
+        adj_files.clear();
+
+        init();
+    }
 
   private:
     std::string raw_data_dir, adj_data_dir;
@@ -172,6 +193,7 @@ class CSVCommonDataImpl : public GenericDataImpl<CommonFeedData> {
     CSVCommonDataImpl(const std::string &file, TimeStrConv::func_type time_converter,
                       const std::vector<int> str_cols);
     bool read() override;
+    void reset() override { init(); }
 
   private:
     void init();
@@ -183,33 +205,101 @@ class CSVCommonDataImpl : public GenericDataImpl<CommonFeedData> {
 };
 
 // ---------------------------------------------------------------------------------
-struct CSVTabularData {
-    std::shared_ptr<CSVTabularDataImpl> sp;
+
+struct GenericCommonDataFeed {
+    std::shared_ptr<GenericDataImpl<CommonFeedData>> sp;
+
+    bool read() { return sp->read(); }
+    const auto &time() const { return sp->data().time; }
+    CommonFeedData *data_ptr() { return sp->data_ptr(); }
+
+    virtual void reset() { sp->reset(); }
+    const auto &name() const { return sp->name(); }
+
+    GenericCommonDataFeed &set_name(const std::string &name) {
+        sp->set_name(name);
+        return *this;
+    }
+};
+// If no str_cols, then all columns are assumed to be numeric.
+struct CSVCommonData : GenericCommonDataFeed {
+    std::shared_ptr<CSVCommonDataImpl> sp;
+
+    CSVCommonData(const std::string &file, TimeStrConv::func_type time_converter = nullptr,
+                  const std::vector<int> &str_cols = {})
+        : sp(std::make_shared<CSVCommonDataImpl>(file, time_converter, str_cols)) {
+        GenericCommonDataFeed::sp = sp;
+    }
+
+    void reset() override { sp->reset(); }
+
+    CSVCommonData &set_name(const std::string &name) {
+        GenericCommonDataFeed::set_name(name);
+        return *this;
+    }
+};
+
+struct GenericPriceDataFeed {
+    GenericPriceDataFeed() = default;
+
+    std::shared_ptr<GenericPriceDataImpl> sp = nullptr;
+
+    bool read() { return sp->read(); }
+    virtual void reset() { sp->reset(); }
+
+    PriceFeedData *data_ptr() { return sp->data_ptr(); }
+    int assets() const { return sp->assets(); }
+    const auto &time() const { return sp->data().time; }
+    const auto &codes() const { return sp->codes(); }
+
+    const auto &name() const { return sp->name(); }
+
+    GenericPriceDataFeed &set_name(const std::string &name) {
+        sp->set_name(name);
+        return *this;
+    }
+};
+
+struct CSVTabularData : GenericPriceDataFeed {
+    std::shared_ptr<CSVTabularDataImpl> sp = nullptr;
 
     CSVTabularData(const std::string &raw_data_file,
                    TimeStrConv::func_type time_converter = nullptr)
-        : sp(std::make_shared<CSVTabularDataImpl>(raw_data_file, time_converter)) {}
+        : sp(std::make_shared<CSVTabularDataImpl>(raw_data_file, time_converter)) {
+        GenericPriceDataFeed::sp = sp;
+    }
     // You have to ensure that two file have the same rows.
     CSVTabularData(const std::string &raw_data_file, const std::string &adjusted_data_file,
                    TimeStrConv::func_type time_converter = nullptr)
         : sp(std::make_shared<CSVTabularDataImpl>(raw_data_file, adjusted_data_file,
-                                                  time_converter)) {}
+                                                  time_converter)) {
+        GenericPriceDataFeed::sp = sp;
+    }
 
     bool read() { return sp->read(); }
+
+    CSVTabularData &set_name(const std::string &name) {
+        GenericPriceDataFeed::set_name(name);
+        return *this;
+    }
 };
 
-struct CSVDirectoryData {
+struct CSVDirectoryData : GenericPriceDataFeed {
     std::shared_ptr<CSVDirectoryDataImpl> sp;
 
     CSVDirectoryData(const std::string &raw_data_dir,
                      std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
                      TimeStrConv::func_type time_converter = nullptr)
-        : sp(std::make_shared<CSVDirectoryDataImpl>(raw_data_dir, tohlc_map, time_converter)) {}
+        : sp(std::make_shared<CSVDirectoryDataImpl>(raw_data_dir, tohlc_map, time_converter)) {
+        GenericPriceDataFeed::sp = sp;
+    }
     CSVDirectoryData(const std::string &raw_data_dir, const std::string &adj_data_dir,
                      std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
                      TimeStrConv::func_type time_converter = nullptr)
         : sp(std::make_shared<CSVDirectoryDataImpl>(raw_data_dir, adj_data_dir, tohlc_map,
-                                                    time_converter)) {}
+                                                    time_converter)) {
+        GenericPriceDataFeed::sp = sp;
+    }
 
     bool read() { return sp->read(); }
 
@@ -226,43 +316,12 @@ struct CSVDirectoryData {
     CSVDirectoryData &set_code_extractor(std::function<std::string(std::string)> fun) {
         sp->code_extractor(fun);
         return *this;
-    };
-};
+    }
 
-// If no str_cols, then all columns are assumed to be numeric.
-struct CSVCommonData {
-    std::shared_ptr<CSVCommonDataImpl> sp;
-
-    CSVCommonData(const std::string &file, TimeStrConv::func_type time_converter = nullptr,
-                  const std::vector<int> &str_cols = {})
-        : sp(std::make_shared<CSVCommonDataImpl>(file, time_converter, str_cols)) {}
-
-    bool read() { return sp->read(); }
-    CommonFeedData *data_ptr() { return sp->data_ptr(); }
-};
-struct GenericCommonDataFeed {
-    std::shared_ptr<GenericDataImpl<CommonFeedData>> sp;
-    GenericCommonDataFeed(const CSVCommonData &data) : sp(data.sp) {}
-
-    bool read() { return sp->read(); }
-    const auto &time() const { return sp->data().time; }
-    CommonFeedData *data_ptr() { return sp->data_ptr(); }
-};
-
-struct GenericPriceDataFeed {
-    GenericPriceDataFeed() = default;
-
-    std::shared_ptr<GenericPriceDataImpl> sp = nullptr;
-
-    GenericPriceDataFeed(const CSVTabularData &data) : sp(data.sp) {}
-
-    GenericPriceDataFeed(const CSVDirectoryData &data) : sp(data.sp) {}
-
-    bool read() { return sp->read(); }
-    PriceFeedData *data_ptr() { return sp->data_ptr(); }
-    int assets() const { return sp->assets(); }
-    const auto &time() const { return sp->data().time; }
-    const auto &codes() const { return sp->codes(); }
+    CSVDirectoryData &set_name(const std::string &name) {
+        GenericPriceDataFeed::set_name(name);
+        return *this;
+    }
 };
 
 //-------------------------------------------------------------------
@@ -281,6 +340,7 @@ template <typename DataT, typename FeedT, typename BufferT> class GenericFeedsAg
     void add_feed(const FeedT &feed);
 
     void init();
+    void reset();
     auto finished() const { return finished_; }
     bool read();
 
@@ -294,7 +354,6 @@ template <typename DataT, typename FeedT, typename BufferT> class GenericFeedsAg
     void align_with(const GenericFeedsAggragator<T1, T2, T3> &target);
 
   private:
-    std::vector<State> status_;
     std::vector<ptime> times_;
 
     std::vector<const DataT *> next_;
@@ -302,9 +361,10 @@ template <typename DataT, typename FeedT, typename BufferT> class GenericFeedsAg
     std::vector<BufferT> data_;
 
     VecArrXb datas_valid_;
-    bool finished_ = false;
 
-    ptime time_;
+    std::vector<State> status_;
+    bool finished_ = false;
+    ptime time_ = boost::gregorian::min_date_time;
 };
 
 using PriceFeedAggragator =
@@ -333,7 +393,7 @@ std::vector<std::string> CSVRowParaser::parse_row(const std::string &row) {
     }
     return res;
 }
-double backtradercpp::feeds::CSVRowParaser::parse_double(const std::string &ele) {
+double CSVRowParaser::parse_double(const std::string &ele) {
     double res = std::numeric_limits<double>::quiet_NaN();
     std::string s = boost::algorithm::trim_copy(ele);
     try {
@@ -346,7 +406,8 @@ double backtradercpp::feeds::CSVRowParaser::parse_double(const std::string &ele)
 
 inline CSVTabularDataImpl::CSVTabularDataImpl(const std::string &raw_data_file,
                                               TimeStrConv::func_type time_converter)
-    : GenericPriceDataImpl(time_converter), raw_data_file_(raw_data_file),
+    : GenericPriceDataImpl(time_converter), raw_data_file_name_(raw_data_file),
+      adj_data_file_name_(raw_data_file), raw_data_file_(raw_data_file),
       adj_data_file_(raw_data_file) {
     backtradercpp::util::check_path_exists(raw_data_file);
     init();
@@ -357,14 +418,18 @@ CSVTabularDataImpl::CSVTabularDataImpl(const std::string &raw_data_file,
                                        TimeStrConv::func_type time_converter)
     : GenericPriceDataImpl(time_converter) {
     backtradercpp::util::check_path_exists(raw_data_file);
-    raw_data_file_ = std::ifstream(raw_data_file);
     backtradercpp::util::check_path_exists(adjusted_data_file);
-    adj_data_file_ = std::ifstream(adjusted_data_file);
+
+    raw_data_file_name_ = raw_data_file;
+    adj_data_file_name_ = raw_data_file;
 
     init();
 }
 
 void CSVTabularDataImpl::init() {
+
+    raw_data_file_ = std::ifstream(raw_data_file_name_);
+    adj_data_file_ = std::ifstream(adj_data_file_name_);
 
     // Read header
     std::string header;
@@ -472,6 +537,17 @@ inline void GenericFeedsAggragator<DataT, FeedT, BufferT>::add_feed(const FeedT 
     next_.push_back(&(feed.sp->next()));
     data_.emplace_back(feed.sp->next());
     datas_valid_.resize(feeds_.size());
+}
+template <typename DataT, typename FeedT, typename BufferT>
+void GenericFeedsAggragator<DataT, FeedT, BufferT>::reset() {
+    for (auto &ele : status_) {
+        ele = Invalid;
+    }
+    time_ = boost::gregorian::min_date_time;
+    finished_ = false;
+    for (auto &f : feeds_) {
+        f.reset();
+    }
 }
 
 inline CSVDirectoryDataImpl::CSVDirectoryDataImpl(const std::string &raw_data_dir,
@@ -651,7 +727,7 @@ CSVCommonDataImpl ::CSVCommonDataImpl(const std::string &file,
                                       const std::vector<int> str_cols)
     : GenericDataImpl(time_converter), file(file), str_cols_(str_cols.begin(), str_cols.end()) {
     util::check_path_exists(file);
-    data_file_ = std::ifstream(file);
+
     init();
 }
 bool CSVCommonDataImpl::read() {
@@ -681,6 +757,7 @@ bool CSVCommonDataImpl::read() {
 
 void CSVCommonDataImpl::init() { // Read header
 
+    data_file_ = std::ifstream(file);
     std::string header;
     std::getline(data_file_, header);
 

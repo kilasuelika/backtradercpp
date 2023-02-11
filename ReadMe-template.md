@@ -52,12 +52,20 @@ In this example, stock data are simulated from geometric brownian motion and sto
 ![[vs_examples/option_hedging/option_hedging.cpp]]
 ```
 
-### Use Dividen Data
+### Use dividen data
 
 In this example, dividen data for stocks are add through `StockBroker.set_xrd_dir(dir, columns)`. In the dir, dividen for each stock are stored in separated files. `columns` is a vector of length 5 to specify column indices (0 start) for `record date` (登记日), `execution date` (除权除息日), `bonus` (送股), `additional` (转增股) and `dividen` (分红). The unit is 10 stocks. For example, `bonus=5` means if you have 1000 stocks, then you will get extra `1000/10*5=500` stocks.
 
 ```cpp
 ![[vs_examples/stock_xrd/stock_xrd.cpp]]
+```
+
+### Repeat run with modified settings
+
+In this example, we compare performances between different commission rates.
+
+```cpp
+![[vs_examples/repeat_run/repeat_run.cpp]]
 ```
 
 ## Important Notes
@@ -66,7 +74,7 @@ In this example, dividen data for stocks are add through `StockBroker.set_xrd_di
 
 2. Link to `OpenMP` for accelerating.
 
-3. If some asset prices are missing in middle, then portfolio value will be the last availiable one. However in `Position.csv` of log file (after set_log_dir), there will be a `State` column to indicate whether data is availiable.
+3. If some asset prices are missing in middle, then portfolio value will be the last availiable one. In `Position.csv` of log file (after `set_log_dir()`), there will be a `State` column to indicate whether data is availiable.
 
 4. Different data may have different time span, the library will align data automatically for you.
 

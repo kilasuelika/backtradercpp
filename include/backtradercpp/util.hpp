@@ -74,6 +74,12 @@ auto delimited_to_date(const std::string &s) {
     return boost::gregorian::date(std::stoi(s.substr(0, 4)), std::stoi(s.substr(5, 2)),
                                   std::stoi(s.substr(8, 2)));
 }
+
+template <typename T> void reset_ifstream(T &f) {
+    f.clear();
+    f.seekg(0, std::ios::beg);
+}
+
 } // namespace util
 } // namespace backtradercpp
 

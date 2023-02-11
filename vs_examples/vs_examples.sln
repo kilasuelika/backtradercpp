@@ -22,6 +22,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "option_hedging", "option_he
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stock_xrd", "stock_xrd\stock_xrd.vcxproj", "{372C4978-A2D5-4DF9-8E02-C40DC4777056}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "repeat_run", "repeat_run\repeat_run.vcxproj", "{3B434E31-E856-4E06-A405-B6B2D0E91F13}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -86,6 +88,14 @@ Global
 		{372C4978-A2D5-4DF9-8E02-C40DC4777056}.Release|x64.Build.0 = Release|x64
 		{372C4978-A2D5-4DF9-8E02-C40DC4777056}.Release|x86.ActiveCfg = Release|Win32
 		{372C4978-A2D5-4DF9-8E02-C40DC4777056}.Release|x86.Build.0 = Release|Win32
+		{3B434E31-E856-4E06-A405-B6B2D0E91F13}.Debug|x64.ActiveCfg = Debug|x64
+		{3B434E31-E856-4E06-A405-B6B2D0E91F13}.Debug|x64.Build.0 = Debug|x64
+		{3B434E31-E856-4E06-A405-B6B2D0E91F13}.Debug|x86.ActiveCfg = Debug|Win32
+		{3B434E31-E856-4E06-A405-B6B2D0E91F13}.Debug|x86.Build.0 = Debug|Win32
+		{3B434E31-E856-4E06-A405-B6B2D0E91F13}.Release|x64.ActiveCfg = Release|x64
+		{3B434E31-E856-4E06-A405-B6B2D0E91F13}.Release|x64.Build.0 = Release|x64
+		{3B434E31-E856-4E06-A405-B6B2D0E91F13}.Release|x86.ActiveCfg = Release|Win32
+		{3B434E31-E856-4E06-A405-B6B2D0E91F13}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

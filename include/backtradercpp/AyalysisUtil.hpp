@@ -72,8 +72,13 @@ class TotalValueAnalyzer {
     void update_total_value(double total_value);
     const auto &total_value_history() const { return total_value_history_; }
 
+    void reset() { total_value_history_.resize(0); }
+    const std::string &name() const { return name_; }
+    void set_name(const std::string &name_) { this->name_ = name_; }
+
   protected:
     VecArrXd total_value_history_;
+    std::string name_;
 };
 
 void TotalValueAnalyzer::update_total_value(double total_value) {
@@ -93,13 +98,15 @@ class MetricAnalyzer {
     void cal_metrics();
     const auto &performance() const { return performance_; }
 
+    void reset() { total_value_analyzers_.clear(); }
+
   private:
     std::vector<const TotalValueAnalyzer *> total_value_analyzers_;
     // std::vector<VecArrXd> total_values_;
     std::vector<PerformanceMetric> performance_;
 };
 
-inline void backtradercpp::analysis::MetricAnalyzer::cal_metrics() {
+inline void MetricAnalyzer::cal_metrics() {
     performance_.clear();
     for (int i = 0; i < total_value_analyzers_.size(); ++i) {
         performance_.emplace_back(
@@ -119,7 +126,7 @@ inline void MetricAnalyzer::print_table() const {
        << "All";
     if (performance_.size() > 1)
         for (int i = 0; i < performance_.size() - 1; ++i)
-            tb << i;
+            tb << total_value_analyzers_[i + 1]->name();
     tb << fort::endr;
 
     tb << "Profit    ";

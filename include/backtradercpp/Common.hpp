@@ -236,6 +236,8 @@ struct Portfolio {
 
     void transfer_stock(ptime time, int asset, int volume);
     void transfer_cash(int cash);
+
+    void reset() { *this = Portfolio(); }
 };
 #define BK_DEFINE_PORTFOLIO_MEMBER_ACCESSOR(var, type, default_val)                                \
     inline type Portfolio::var(int asset) const {                                                  \

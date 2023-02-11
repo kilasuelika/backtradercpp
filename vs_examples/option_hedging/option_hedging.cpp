@@ -12,7 +12,7 @@ struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
         // Buy options at the first time.
         if (time_index() == 0) {
             VecArrXi target_C(assets(0));
-            target_C.setConstant(100);
+            target_C.setConstant(100); // Buy 100 options for each path.
             adjust_to_volume_target(0, target_C);
         }
 
@@ -20,6 +20,7 @@ struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
         if (time_index() % period == 0) {
             VecArrXi target_S(assets(1));
 
+            // Accessing read common data.
             double sigma = common_data(0).num(-1, "sigma");
             double K = common_data(0).num(-1, "K");
             double rf = common_data(0).num(-1, "rf");
@@ -58,8 +59,8 @@ int main() {
     cerebro.add_common_data(feeds::CSVCommonData("../../example_data/Option/OptionInfo.csv",
                                                  feeds::TimeStrConv::delimited_date),
                             window);
-    auto s = std::make_shared<DeltaOptionHedgingStrategy>();
-    cerebro.set_strategy(s);
+
+    cerebro.set_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
     cerebro.set_log_dir("log");
     cerebro.run();
 

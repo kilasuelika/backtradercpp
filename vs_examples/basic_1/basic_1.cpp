@@ -5,7 +5,7 @@ using namespace std;
 
 struct SimpleStrategy : strategy::GenericStrategy {
     void run() override {
-        // Buy assets at 5th day.
+        // Buy assets at 6th day. Index starts from 0, so index 5 means 6th day.
         if (time_index() == 5) {
             for (int j = 0; j < data(0).assets(); ++j) {
                 if (data(0).valid(-1, j)) {

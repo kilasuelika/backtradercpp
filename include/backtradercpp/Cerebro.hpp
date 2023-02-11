@@ -10,6 +10,7 @@
 // #include<chrono>
 namespace backtradercpp {
 
+enum VerboseLevel { None, OnlySummary, All };
 class Cerebro {
   public:
     // window is for strategy. DataFeed and Broker doesn't store history data.
@@ -22,8 +23,14 @@ class Cerebro {
     void set_range(const date &start, const date &end = date(boost::date_time::max_date_time));
     // Set a directory for logging.
     void set_log_dir(const std::string &dir);
+    void set_verbose(VerboseLevel v) { verbose_ = v; };
 
     void run();
+    void reset();
+
+    auto broker(int broker);
+    auto broker(const std::string &broker_name);
+
     const std::vector<PriceFeedDataBuffer> &datas() const { return price_feeds_agg_.datas(); }
 
     const auto &performance() const { return broker_agg_.performance(); }
@@ -37,6 +44,8 @@ class Cerebro {
     std::shared_ptr<strategy::GenericStrategy> strategy_;
     // strategy::FullAssetData data_;
     ptime start_{boost::posix_time::min_date_time}, end_{boost::posix_time::max_date_time};
+
+    VerboseLevel verbose_ = All;
 };
 
 void Cerebro::add_broker(broker::BaseBroker broker, int window) {
@@ -63,7 +72,8 @@ inline void Cerebro::set_range(const date &start, const date &end) {
 }
 
 void Cerebro::run() {
-    fmt::print(fmt::fg(fmt::color::yellow), "Runnng strategy..\n");
+    if (verbose_ == All)
+        fmt::print(fmt::fg(fmt::color::yellow), "Runnng strategy..\n");
     init_strategy();
 
     while (!price_feeds_agg_.finished()) {
@@ -73,10 +83,11 @@ void Cerebro::run() {
             break;
         common_feeds_agg_.read();
         if (price_feeds_agg_.time() >= start_) {
-            fmt::print(fmt::runtime("┌{0:─^{2}}┐\n"
-                                    "│{1: ^{2}}│\n"
-                                    "└{0:─^{2}}┘\n"),
-                       "", util::to_string(price_feeds_agg_.time()), 21);
+            if (verbose_ == All)
+                fmt::print(fmt::runtime("┌{0:─^{2}}┐\n"
+                                        "│{1: ^{2}}│\n"
+                                        "└{0:─^{2}}┘\n"),
+                           "", util::to_string(price_feeds_agg_.time()), 21);
 
             // fmt::print("{}\n", util::to_string(feeds_agg_.time()));
             broker_agg_.process_old_orders();
@@ -85,14 +96,26 @@ void Cerebro::run() {
             broker_agg_.process_terms();
             broker_agg_.update_info();
 
-            fmt::print("cash: {:12.4f},  total_wealth: {:12.2f}\n", broker_agg_.total_cash(),
-                       broker_agg_.total_wealth());
-            fmt::print("Using {} seconds.\n", util::sw_to_seconds(sw));
+            if (verbose_ == All) {
+                fmt::print("cash: {:12.4f},  total_wealth: {:12.2f}\n", broker_agg_.total_cash(),
+                           broker_agg_.total_wealth());
+                fmt::print("Using {} seconds.\n", util::sw_to_seconds(sw));
+            }
         }
     }
-    broker_agg_.summary();
+    if (verbose_ == OnlySummary || verbose_ == All)
+        broker_agg_.summary();
 }
 
+void Cerebro::reset() {
+    price_feeds_agg_.reset();
+    common_feeds_agg_.reset();
+    broker_agg_.reset();
+    strategy_->reset();
+}
+
+auto Cerebro::broker(int broker) { return broker_agg_.broker(broker); }
+auto Cerebro::broker(const std::string &broker_name) { return broker_agg_.broker(broker_name); }
 void Cerebro::set_log_dir(const std::string &dir) {
     if (!std::filesystem::exists(dir)) {
         std::filesystem::create_directories(dir);

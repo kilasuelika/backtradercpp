@@ -14,11 +14,11 @@ namespace broker {
 struct GenericCommission {
     GenericCommission() = default;
     GenericCommission(double long_rate, double short_rate)
-        : long_commission_rate(long_rate), short_commission_rate(short_rate){};
+        : long_commission_rate(long_rate), short_commission_rate(short_rate) {}
 
     virtual double cal_commission(double price, int volume) const {
         return (volume >= 0) ? price * volume * long_commission_rate
-                             : price * volume * short_commission_rate;
+                             : -price * volume * short_commission_rate;
     }
     // virtual VecArrXd cal_commission(VecArrXd price, VecArrXi volume) const;
     double long_commission_rate = 0, short_commission_rate = 0;
@@ -58,6 +58,9 @@ class BaseBrokerImpl {
     VecArrXd adj_profits() const { return portfolio_.adj_profits(assets()); }
 
     void set_allow_short(bool flag) { allow_short_ = flag; }
+    void set_commission_rate(double long_rate, double short_rate) {
+        commission_ = std::make_shared<GenericCommission>(long_rate, short_rate);
+    }
     void set_log_dir(const std::string &dir, int index);
 
     void resize(int n);
@@ -67,6 +70,18 @@ class BaseBrokerImpl {
     void set_data_ptr(PriceFeedData *data) { current_ = data; }
 
     void add_order(const Order &order);
+
+    void reset() {
+        unprocessed.clear();
+        analyzer_.reset();
+        portfolio_.reset();
+    }
+
+    const auto &name() const { return feed_.name(); }
+    const auto name(int index) const {
+        const auto &name_ = name();
+        return name_.empty() ? std::to_string(index) : name_;
+    }
 
   protected:
     friend class BrokerAggragator;
@@ -88,8 +103,8 @@ class BaseBrokerImpl {
     bool allow_short_ = false, allow_default_ = false;
 
     bool log_ = false;
-    std::ofstream transaction_file_, position_file_;
 
+    std::ofstream transaction_file_, position_file_;
     std::vector<std::string> codes_;
 
     analysis::TotalValueAnalyzer analyzer_;
@@ -146,7 +161,10 @@ class BaseBroker {
         return *this;
     }
 
-    virtual BaseBroker &commission_rate(double long_rate, double short_rate = 0);
+    virtual BaseBroker &set_commission_rate(double long_rate, double short_rate) {
+        sp->set_commission_rate(long_rate, short_rate);
+        return *this;
+    }
 
     virtual BaseBroker &tax(std::shared_ptr<GenericTax> tax_) {
         sp->tax_ = tax_;
@@ -162,6 +180,10 @@ class BaseBroker {
         return *this;
     }
 
+    virtual BaseBroker &reset() {
+        sp->reset();
+        return *this;
+    }
     auto &portfolio() const { return sp->portfolio_; };
 
     void process(Order &order) { sp->process(order); }
@@ -188,13 +210,18 @@ class BaseBroker {
         sp->set_feed(data);
         return *this;
     }
-    auto feed() { return sp->feed(); }
+    auto feed() const { return sp->feed(); }
 
     void set_data_ptr(PriceFeedData *data) { sp->set_data_ptr(data); }
 
-    void add_order(const Order &order) { sp->add_order(order); };
+    void add_order(const Order &order) { sp->add_order(order); }
 
     const ptime &time() const { return sp->current_->time; }
+
+    const auto &name() const { return sp->name(); }
+    const auto &name(int index) const { return sp->name(index); }
+
+    virtual ~BaseBroker() = default;
 };
 
 class StockBroker : public BaseBroker {
@@ -214,10 +241,10 @@ class StockBroker : public BaseBroker {
         return *this;
     }
 
-    StockBroker &commission_rate(double long_rate, double short_rate = 0) override {
-        BaseBroker::commission_rate(long_rate, short_rate);
+    StockBroker &set_commission_rate(double long_rate, double short_rate = 0) override {
+        BaseBroker::set_commission_rate(long_rate, short_rate);
         return *this;
-    };
+    }
 
     StockBroker &tax(std::shared_ptr<GenericTax> tax_) override {
         BaseBroker::tax(tax_);
@@ -273,6 +300,10 @@ class BrokerAggragator {
     const auto &portfolio(int broker) const { return brokers_[broker].portfolio(); }
 
     int assets(int broker) const { return brokers_[broker].assets(); }
+    int assets(const std::string &broker_name) const {
+        return brokers_[broker_name_map_.at(broker_name)].assets();
+    }
+
     double total_wealth() const { return wealth_; }
     double wealth(int broker) const { return total_values_.coeff(broker); }
     const auto &wealth_history() const { return total_value_analyzer_.total_value_history(); }
@@ -288,10 +319,28 @@ class BrokerAggragator {
     void cal_metrics();
     const auto &performance() const { return metric_analyzer_.performance(); }
 
+    auto broker(int b) { return brokers_[b]; }
+    auto broker(const std::string &b_name) { return brokers_[broker_name_map_.at(b_name)]; }
+    auto broker_id(const std::string &b_name) { return broker_name_map_.at(b_name); }
+
+    void reset() {
+        times_.clear();
+        total_value_analyzer_.reset();
+        metric_analyzer_.reset();
+        total_values_.resize(brokers_.size());
+
+        for (auto &b : brokers_) {
+            b.reset();
+        }
+
+        _collect_portfolio();
+    }
+
   private:
     // std::shared_ptr<feeds::FeedsAggragator> feed_agg_;
     std::vector<ptime> times_;
     std::vector<BaseBroker> brokers_;
+    std::unordered_map<std::string, int> broker_name_map_; // Map name to index.
 
     std::vector<VecArrXi> positions_;
     std::vector<VecArrXd> values_, profits_, adj_profits_;
@@ -310,6 +359,7 @@ class BrokerAggragator {
     // std::vector<analysis::PerformanceMetric> performance_;
 
     void _write_log();
+    void _collect_portfolio();
 };
 
 inline BaseBrokerImpl::BaseBrokerImpl(double cash, double long_commission_rate,
@@ -318,12 +368,6 @@ inline BaseBrokerImpl::BaseBrokerImpl(double cash, double long_commission_rate,
     : portfolio_{cash},
       commission_(std::make_shared<GenericCommission>(long_commission_rate, short_commission_rate)),
       tax_(std::make_shared<GenericTax>(long_tax_rate, long_commission_rate)) {}
-
-BaseBroker &BaseBroker::commission_rate(double long_rate, double short_rate) {
-    sp->commission_->long_commission_rate = long_rate;
-    sp->commission_->short_commission_rate = short_rate;
-    return *this;
-}
 
 inline void BaseBrokerImpl::process(Order &order) {
     // First check time
@@ -378,11 +422,11 @@ inline void BaseBrokerImpl::process(Order &order) {
 
                     if (log_) {
                         transaction_file_
-                            << std::format("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
+                            << std::format("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
                                            util::to_string(time), cash_before, asset, codes_[asset],
                                            position_before, order.volume > 0 ? "+" : "-",
-                                           order.volume, order.price, order.value, position_after,
-                                           cash_after, "")
+                                           order.volume, order.price, order.value, order.fee,
+                                           position_after, cash_after, "")
                             << std::endl;
                     }
                 }
@@ -435,6 +479,7 @@ inline void BaseBrokerImpl::resize(int n) {}
 void BaseBrokerImpl::set_feed(feeds::GenericPriceDataFeed data) {
 
     feed_ = data;
+    analyzer_.set_name(feed_.name());
 
     resize(data.assets());
     current_ = data.data_ptr();
@@ -475,9 +520,9 @@ void StockBrokerImpl::process_trems() {
         int position_after = portfolio_.position(cd);
         double cash_after = portfolio_.cash;
 
-        transaction_file_ << std::format("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
+        transaction_file_ << std::format("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
                                          util::to_string(ptime(dt)), cash_before, cd, codes_[cd],
-                                         position_before, "", vol, 0, cash, position_after,
+                                         position_before, "", vol, 0, cash, "", position_after,
                                          cash_after, "XRD")
                           << std::endl;
     }
@@ -597,18 +642,29 @@ void BrokerAggragator::_write_log() {
     }
     wealth_file_ << std::endl;
 }
+void backtradercpp::broker::BrokerAggragator::_collect_portfolio() {
+    for (int i = 0; i < brokers_.size(); ++i) {
+        auto broker = brokers_[i];
+        positions_[i] = broker.positions();
+        values_[i] = broker.values();
+        profits_[i] = broker.profits();
+        adj_profits_[i] = broker.adj_profits();
+    }
+}
 
 inline void BaseBrokerImpl::set_log_dir(const std::string &dir, int index) {
     log_ = true;
+    std::cout << "set_log_dir: " << index << feed_.name() << std::endl;
     transaction_file_ =
         std::ofstream(std::filesystem::path(dir) /
-                      std::filesystem ::path(std::format("Transaction_{}.csv", index)));
+                      std::filesystem ::path(std::format("Transaction_{}.csv", name(index))));
     transaction_file_ << "Date, CashBefore,  ID, Code, PositionBefore,  Direction, Volume, Price, "
-                         "Value, PositionAfter, CashAfter,  Info"
+                         "Value, Fee, PositionAfter, CashAfter,  Info"
                       << std::endl;
 
-    position_file_ = std::ofstream(std::filesystem::path(dir) /
-                                   std::filesystem ::path(std::format("Position_{}.csv", index)));
+    position_file_ =
+        std::ofstream(std::filesystem::path(dir) /
+                      std::filesystem ::path(std::format("Position_{}.csv", name(index))));
     position_file_ << "Date, ID, Code, Position, Price, Value, State" << std::endl;
 }
 
@@ -626,12 +682,14 @@ inline void BrokerAggragator::set_log_dir(const std::string &dir) {
         std::ofstream(std::filesystem::path(dir) / std::filesystem ::path("TotalValue.csv"));
     wealth_file_ << "Date, TotalValue";
     for (int i = 0; i < brokers_.size(); ++i) {
+        const auto &name_ = brokers_[i].name(i);
         wealth_file_ << std::format(
-            ", Broker_{}_Cash, Broker_{}_HoldingValue, Broker_{}_TotalValue", i, i, i);
+            ", Broker_{}_Cash, Broker_{}_HoldingValue, Broker_{}_TotalValue", name_, name_, name_);
     }
     wealth_file_ << std::endl;
 }
 inline void BrokerAggragator::add_broker(const BaseBroker &broker) {
+    broker_name_map_[broker.feed().name()] = brokers_.size();
     brokers_.push_back(broker);
     positions_.emplace_back(broker.positions());
     values_.emplace_back(broker.values());
@@ -647,7 +705,7 @@ inline void BaseBroker::set_log_dir(const std::string &dir, int index) {
     sp->set_log_dir(dir, index);
 }
 
-void backtradercpp::broker::BrokerAggragator::cal_metrics() {
+void BrokerAggragator::cal_metrics() {
     metric_analyzer_.register_TotalValueAnalyzer(&total_value_analyzer_);
     if (brokers_.size() > 1) {
         for (const auto &b : brokers_) {
