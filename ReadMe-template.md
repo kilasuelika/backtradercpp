@@ -2,13 +2,18 @@
 
 As the name suggesting, this library is partially inspired by `backtrader` on Python. In my own use, `backtrader` constantly made me confusing so I decide to write my own library.
 
+## ToDo
+
+- [ ] Alignment between price and common data
+- [ ] Strategy Optimizer
+
 ## Install
 
 It's a header only library. But you need to install some dependencies. On windows:
+
 ```
 ./vcpkg install boost:x64-windows eigen3:x64-windows fmt:x64-windows libfort:x64-windows
 ```
-
 
 ## Example
 
@@ -88,12 +93,12 @@ In this example, we compare performances between different commission rates.
 boost::posix_time::ptime time(); // Current time.
 int time_index();  //Count of days (0 start).  
 
-FullAssetData &data(int broker);  	
-	VecArrXd data(broker).open(int i=-1);  //-1 means latest (today) in window, -2 means previous day.
-	double   data(broker).open(int i, int asset); //close of an asset.
-	                      high(), low(), close()    //similar.
-	                      adj_open(), adj_high(), adj_low(), adj_close();
-	VecXrrXb data(broker).valid(int i=-1);  //If asset is valid.
+FullAssetData &data(int broker);   
+ VecArrXd data(broker).open(int i=-1);  //-1 means latest (today) in window, -2 means previous day.
+ double   data(broker).open(int i, int asset); //close of an asset.
+                       high(), low(), close()    //similar.
+                       adj_open(), adj_high(), adj_low(), adj_close();
+ VecXrrXb data(broker).valid(int i=-1);  //If asset is valid.
 
 //Number of assets.
 int assets(int broker);  
@@ -102,9 +107,11 @@ double cash(int broker);
 const VecArrXi &positions(int broker) ; //A full length vector (may contain 0 if didn't buy some assets) of position on each asset.
 int position(int broker, int asset);
     values(), value();   //similar. Asset value under raw close price.
-	adj_profits(), adj_profit(); //Accumulated profits under adjusted price. Note if you sell all of an asset. Then next time when you buy the asset, this value will be accumulated from 0.
+ adj_profits(), adj_profit(); //Accumulated profits under adjusted price. Note if you sell all of an asset. Then next time when you buy the asset, this value will be accumulated from 0.
 ```
+
 Here `VecArrX*` is `eigen` type:
+
 ```cpp
 using VecArrXd = Eigen::Array<double, Eigen::Dynamic, 1>;
 using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
