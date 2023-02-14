@@ -70,12 +70,28 @@ In this example, dividen data for stocks are add through `StockBroker.set_xrd_di
 ![[vs_examples/stock_xrd/stock_xrd.cpp]]
 ```
 
-### Repeat run with modified settings
+### Repeat runs with modified settings
 
 In this example, we compare performances between different commission rates.
 
 ```cpp
 ![[vs_examples/repeat_run/repeat_run.cpp]]
+```
+
+### Dump data
+
+This library provides some facilities for automatic dump data management. So when the first run, you can dump calculated data, then for following runs you can access dumped data to avoid repeat calculation. Note that price and common data are not dumped.
+
+```cpp
+![[vs_examples/dump_data/dump_data.cpp]]
+```
+
+### Optimize strategy
+
+An `optimize_strategy` function is provided to optimize a strategy with tabular search. You need to use `get_var()` to get variable value. Then `optimize_strategy` will set those values for repeat runs.
+
+```cpp
+![[vs_examples/optimize_strategy/optimize_strategy.cpp]]
 ```
 
 ## Important Notes
