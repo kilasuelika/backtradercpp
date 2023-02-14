@@ -19,3 +19,7 @@ vs_examples/repeat_run/log1
 
 vs_examples/optimize_strategy/x64
 vs_examples/optimize_strategy/log
+
+
+vs_examples/dump_data/x64
+vs_examples/dump_data/log

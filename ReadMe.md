@@ -5,7 +5,12 @@ As the name suggesting, this library is partially inspired by `backtrader` on Py
 ## ToDo
 
 - [ ] Alignment between price and common data
+- [ ] Multiple strategies support
 - [ ] Strategy Optimizer
+- [ ] Strategy data dump (not price data)
+- [x] History data to vector and matrix
+- [ ] data().ret() and data().adj_ret()
+- [ ] data().invalid_count(): count invalid data count in window
 
 ## Install
 
@@ -48,7 +53,7 @@ int main() {
         broker::BaseBroker(0.0005, 0.001)
             .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
                                              feeds::TimeStrConv::non_delimited_date)));
-    cerebro.set_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }
 ```
@@ -79,7 +84,7 @@ int main() {
             .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
                                              feeds::TimeStrConv::non_delimited_date)),
         2); // 2 for window
-    cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());
+    cerebro.add_strategy(std::make_shared<EqualWeightStrategy>());
     cerebro.run();
 }
 ```
@@ -125,7 +130,7 @@ int main() {
             .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
                                              feeds::TimeStrConv::non_delimited_date)),
         2); // 2 for window
-    cerebro.set_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }
 ```
@@ -178,7 +183,7 @@ int main() {
                                "../../example_data/CSVDirectory/share_index_future",
                                std::array{2, 3, 5, 6, 4}, feeds::TimeStrConv::delimited_date)),
                        2);
-    cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());
+    cerebro.add_strategy(std::make_shared<EqualWeightStrategy>());
     cerebro.set_range(date(2015, 6, 1), date(2022, 6, 1));
     cerebro.run();
 }
@@ -247,11 +252,11 @@ int main() {
             "../../example_data/Option/Stock.csv", feeds::TimeStrConv::delimited_date)),
         window);
     // Information for option
-    cerebro.add_common_data(feeds::CSVCommonData("../../example_data/Option/OptionInfo.csv",
-                                                 feeds::TimeStrConv::delimited_date),
+    cerebro.add_common_data(feeds::CSVCommonDataFeed("../../example_data/Option/OptionInfo.csv",
+                                                     feeds::TimeStrConv::delimited_date),
                             window);
 
-    cerebro.set_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
+    cerebro.add_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
     cerebro.set_log_dir("log");
     cerebro.run();
 
@@ -297,7 +302,7 @@ int main() {
                           }))
             .set_xrd_dir("../../example_data/CSVDirectory/xrd", {7, 6, 2, 3, 4}),
         2);
-    cerebro.set_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
     cerebro.set_log_dir("log");
     cerebro.run();
 
@@ -307,7 +312,7 @@ int main() {
 }
 ```
 
-### Repeat run with modified settings
+### Repeat runs with modified settings
 
 In this example, we compare performances between different commission rates.
 
@@ -371,12 +376,12 @@ int main() {
                                .set_name("stock")),
                        window);
     // Information for option
-    cerebro.add_common_data(feeds::CSVCommonData("../../example_data/Option/OptionInfo.csv",
-                                                 feeds::TimeStrConv::delimited_date)
+    cerebro.add_common_data(feeds::CSVCommonDataFeed("../../example_data/Option/OptionInfo.csv",
+                                                     feeds::TimeStrConv::delimited_date)
                                 .set_name("option"),
                             window);
 
-    cerebro.set_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
+    cerebro.add_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
     cerebro.set_log_dir("log");
     cerebro.set_verbose(OnlySummary);
     cerebro.run();
@@ -394,6 +399,115 @@ int main() {
     double profit1 = cerebro.performance()[0].profit;
 
     fmt::print("Profits under 0 and 0.001 commission rate: {}, {}\n", profit0, profit1);
+}
+```
+
+### Dump data
+
+This library provides some facilities for automatic dump data management. So when the first run, you can dump calculated data, then for following runs you can access dumped data to avoid repeat calculation. Note that price and common data are not dumped.
+
+```cpp
+// dump_data.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
+#include <iostream>
+
+int main()
+{
+    std::cout << "Hello World!\n";
+}
+
+// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
+// Debug program: F5 or Debug > Start Debugging menu
+
+// Tips for Getting Started: 
+//   1. Use the Solution Explorer window to add/manage files
+//   2. Use the Team Explorer window to connect to source control
+//   3. Use the Output window to see build output and other messages
+//   4. Use the Error List window to view errors
+//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
+//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+```
+
+### Optimize strategy
+
+An `optimize_strategy` function is provided to optimize a strategy with tabular search. You need to use `get_var()` to get variable value. Then `optimize_strategy` will set those values for repeat runs.
+
+```cpp
+#include "../../include/backtradercpp/Cerebro.hpp"
+#include <boost/math/distributions.hpp>
+using namespace backtradercpp;
+
+struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
+    explicit DeltaOptionHedgingStrategy(int period = 1) : period(period) {}
+
+    int period = 1;
+
+    void run() override {
+
+        // Buy options at the first time.
+        if (time_index() == 0) {
+            VecArrXi target_C(assets(0));
+            target_C.setConstant(100); // Buy 100 options for each path.
+            adjust_to_volume_target(0, target_C);
+        }
+
+        // data(0).close(-1);
+        std::cout << data(0).close(Sel::All, 0).transpose() << std::endl;
+        // Short stocks.
+        if (time_index() % period == 0) {
+            VecArrXi target_S(assets(1));
+
+            // Accessing read common data.
+            double sigma = common_data(0).num(-1, "sigma");
+            double K = common_data(0).num(-1, "K");
+            double rf = common_data(0).num(-1, "rf");
+
+            for (int i = 0; i < assets(1); ++i) {
+                double S = data(1).close(-1, i);
+                double T = common_data(0).num(-1, "time");
+
+                double d1 =
+                    (std::log(S / K) + (rf + sigma * sigma / 2) * T) / (sigma * std::sqrt(T));
+                double delta = boost::math::cdf(boost::math::normal(), d1);
+
+                target_S.coeffRef(i) = -int(delta * 100);
+            }
+
+            adjust_to_volume_target(1, target_S);
+        }
+    }
+};
+
+int main() {
+    Cerebro cerebro;
+    // code_extractor: extract code form filename.
+    int window = 2;
+    // Option price.
+    cerebro.add_broker(
+        broker::BaseBroker(0).allow_default().set_feed(feeds::CSVTabPriceData(
+            "../../example_data/Option/Option.csv", feeds::TimeStrConv::delimited_date)),
+        window);
+    // Stock price
+    cerebro.add_broker(
+        broker::BaseBroker(0).allow_short().set_feed(feeds::CSVTabPriceData(
+            "../../example_data/Option/Stock.csv", feeds::TimeStrConv::delimited_date)),
+        window);
+    // Information for option
+    cerebro.add_common_data(feeds::CSVCommonDataFeed("../../example_data/Option/OptionInfo.csv",
+                                                     feeds::TimeStrConv::delimited_date),
+                            window);
+
+    cerebro.add_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
+    cerebro.set_log_dir("log");
+    cerebro.run();
+
+    fmt::print(fmt::fg(fmt::color::yellow), "Exact profits: {}\n", -941686);
+    // cerebro.set_verbose(None);
+
+    // Cerebro cerebro1 = cerebro.clone();
+    // cerebro1.reset();
+    // cerebro1.run();
 }
 ```
 
@@ -418,8 +532,11 @@ boost::posix_time::ptime time(); // Current time.
 int time_index();  //Count of days (0 start).  
 
 FullAssetData &data(int broker);   
- VecArrXd data(broker).open(int i=-1);  //-1 means latest (today) in window, -2 means previous day.
- double   data(broker).open(int i, int asset); //close of an asset.
+ VecArrXd data(broker).open(int i=-1) const;  //-1 means latest (today) in window, -2 means previous day.
+ double   data(broker).open(int i, int asset) const; //close of an asset.
+ VecArrXd data(broker).open(Sel::All, int asset) const ; //Return last window of a specific asset as a vector.
+ template <typename Ret = RowMatrixXd>
+    Ret   data(broker).open(Sel::All, Sel::All) const;  //Return the last window of all assets as a mtrix, row is for time, col for assets.
                        high(), low(), close()    //similar.
                        adj_open(), adj_high(), adj_low(), adj_close();
  VecXrrXb data(broker).valid(int i=-1);  //If asset is valid.
