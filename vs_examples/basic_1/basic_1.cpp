@@ -24,6 +24,6 @@ int main() {
         broker::BaseBroker(0.0005, 0.001)
             .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
                                              feeds::TimeStrConv::non_delimited_date)));
-    cerebro.set_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }

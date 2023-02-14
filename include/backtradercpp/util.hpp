@@ -3,6 +3,8 @@
 #include <string>
 #include <iostream>
 #include <boost/date_time.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <format>
 #include <fmt/format.h>
 
@@ -90,6 +92,16 @@ namespace std {
 template <> struct hash<boost::gregorian::date> {
     size_t operator()(const boost::gregorian::date &date) const {
         return std::hash<decltype(date.julian_day())>()(date.julian_day());
+    }
+};
+
+template <> struct hash<boost::posix_time::ptime> {
+    size_t operator()(const boost::posix_time::ptime &time) const {
+        std::hash<long> hasher;
+        std::size_t seed = 0;
+        boost::hash_combine(seed, hasher(time.date().julian_day()));
+        boost::hash_combine(seed, hasher(time.time_of_day().total_seconds()));
+        return seed;
     }
 };
 

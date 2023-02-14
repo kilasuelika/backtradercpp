@@ -5,10 +5,89 @@
 #include "Common.hpp"
 #include "DataFeeds.hpp"
 #include "Broker.hpp"
+#include "util.hpp"
 
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include "3rd_party/boost_serialization_helper/save_load_eigen.h"
+
+#define STRATEGYDUMPUTIL_SETGET_IMPL(name, type, ret_type)                                         \
+    inline void StrategyDumpUtil::set_##name##_dump(const std::string &key, type v) {              \
+        name##_var[key] = v;                                                                       \
+    }                                                                                              \
+    inline std::optional<ret_type> StrategyDumpUtil::get_##name##_dump(const std::string &key) {   \
+        auto it = name##_var.find(key);                                                            \
+        if (it != name##_var.end()) {                                                              \
+            return it->second;                                                                     \
+        } else {                                                                                   \
+            return {};                                                                             \
+        }                                                                                          \
+    }                                                                                              \
+    inline void StrategyDumpUtil::set_timed_##name##_dump(const ptime &t, const std::string &key,  \
+                                                          type v) {                                \
+        timed_##name##_var[t][key] = v;                                                            \
+    }                                                                                              \
+    inline std::optional<ret_type> StrategyDumpUtil::get_timed_##name##_dump(                      \
+        const ptime &t, const std::string &key) {                                                  \
+        auto it1 = timed_##name##_var.find(t);                                                     \
+        if (it1 != timed_##name##_var.end()) {                                                     \
+            auto it2 = it1->second.find(key);                                                      \
+            if (it2 != it1->second.end()) {                                                        \
+                return it2->second;                                                                \
+            } else {                                                                               \
+                return {};                                                                         \
+            }                                                                                      \
+        } else {                                                                                   \
+            return {};                                                                             \
+        }                                                                                          \
+    }
 namespace backtradercpp {
 namespace strategy {
 class Cerebro;
+
+class StrategyDumpUtil {
+  public:
+    void set_d_dump(const std::string &key, double v);
+    void set_dvec_dump(const std::string &key, const Eigen::VectorXd &v);
+    void set_dmat_dump(const std::string &key, const RowMatrixXd &v);
+
+    std::optional<double> get_d_dump(const std::string &key);
+    std::optional<Eigen::VectorXd> get_dvec_dump(const std::string &key);
+    std::optional<RowMatrixXd> get_dmat_dump(const std::string &key);
+
+    void set_timed_d_dump(const ptime &t, const std::string &key, double v);
+    void set_timed_dvec_dump(const ptime &t, const std::string &key, const Eigen::VectorXd &v);
+    void set_timed_dmat_dump(const ptime &t, const std::string &key, const RowMatrixXd &v);
+
+    std::optional<double> get_timed_d_dump(const ptime &t, const std::string &key);
+    std::optional<Eigen::VectorXd> get_timed_dvec_dump(const ptime &t, const std::string &key);
+    std::optional<RowMatrixXd> get_timed_dmat_dump(const ptime &t, const std::string &key);
+
+    template <class Archive> void serialize(Archive &ar, const unsigned int version) {
+        ar &d_var;
+        ar &dvec_var;
+        ar &dmat_var;
+
+        ar &timed_d_var;
+        ar &timed_dvec_var;
+        ar &timed_dmat_var;
+    }
+
+  private:
+    // std::unordered_map<std::string, int> int_var;
+    std::unordered_map<std::string, double> d_var;
+    std::unordered_map<std::string, Eigen::VectorXd> dvec_var;
+    std::unordered_map<std::string, RowMatrixXd> dmat_var;
+
+    std::unordered_map<ptime, std::unordered_map<std::string, int>> timed_d_var;
+    std::unordered_map<ptime, std::unordered_map<std::string, Eigen::VectorXd>> timed_dvec_var;
+    std::unordered_map<ptime, std::unordered_map<std::string, RowMatrixXd>> timed_dmat_var;
+
+    bool dump_ = false;
+    std::string dump_file_name_;
+    std::ifstream dump_file_;
+};
 
 class GenericStrategy {
     friend class Cerebro;
@@ -155,8 +234,19 @@ class GenericStrategy {
 
     int broker_id(const std::string &name) const { return broker_agg_->broker_id(name); }
 
+    void set_int_vars(const std::unordered_map<std::string, int> &vars) { int_vars_ = vars; }
+    void set_int_var(const std::string &name, int val) { int_vars_[name] = val; }
+    auto get_int_var(const std::string &name) { return int_vars_[name]; }
+    void set_double_vars(const std::unordered_map<std::string, double> &vars) {
+        double_vars_ = vars;
+    }
+    void set_double_var(const std::string &name, double val) { double_vars_[name] = val; }
+    auto get_double_var(const std::string &name) { return double_vars_[name]; }
+
+    virtual ~GenericStrategy() = default;
+
   private:
-    int time_index_ = -1;
+    int time_index_ = -1, id_ = 0; // id_ is used for multiple strategies support
 
     Cerebro *cerebro_;
     feeds::PriceFeedAggragator *price_feed_agg_;
@@ -165,7 +255,15 @@ class GenericStrategy {
     broker::BrokerAggragator *broker_agg_;
 
     OrderPool order_pool_;
+
+    std::unordered_map<std::string, int> int_vars_;
+    std::unordered_map<std::string, double> double_vars_;
 };
+
+//--------------------------------------------------------------------------------------------------------------
+STRATEGYDUMPUTIL_SETGET_IMPL(d, double, double)
+STRATEGYDUMPUTIL_SETGET_IMPL(dvec, const Eigen::VectorXd &, Eigen::VectorXd)
+STRATEGYDUMPUTIL_SETGET_IMPL(dmat, const RowMatrixXd &, RowMatrixXd)
 
 inline void GenericStrategy::init_strategy(feeds::PriceFeedAggragator *feed_agg,
                                            feeds::CommonFeedAggragator *common_feed_agg,

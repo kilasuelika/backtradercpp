@@ -5,7 +5,12 @@ As the name suggesting, this library is partially inspired by `backtrader` on Py
 ## ToDo
 
 - [ ] Alignment between price and common data
+- [ ] Multiple strategies support
 - [ ] Strategy Optimizer
+- [ ] Strategy data dump (not price data)
+- [x] History data to vector and matrix
+- [ ] data().ret() and data().adj_ret()
+- [ ] data().invalid_count(): count invalid data count in window
 
 ## Install
 
@@ -94,8 +99,11 @@ boost::posix_time::ptime time(); // Current time.
 int time_index();  //Count of days (0 start).  
 
 FullAssetData &data(int broker);   
- VecArrXd data(broker).open(int i=-1);  //-1 means latest (today) in window, -2 means previous day.
- double   data(broker).open(int i, int asset); //close of an asset.
+ VecArrXd data(broker).open(int i=-1) const;  //-1 means latest (today) in window, -2 means previous day.
+ double   data(broker).open(int i, int asset) const; //close of an asset.
+ VecArrXd data(broker).open(Sel::All, int asset) const ; //Return last window of a specific asset as a vector.
+ template <typename Ret = RowMatrixXd>
+    Ret   data(broker).open(Sel::All, Sel::All) const;  //Return the last window of all assets as a mtrix, row is for time, col for assets.
                        high(), low(), close()    //similar.
                        adj_open(), adj_high(), adj_low(), adj_close();
  VecXrrXb data(broker).valid(int i=-1);  //If asset is valid.

@@ -57,12 +57,12 @@ int main() {
                                .set_name("stock")),
                        window);
     // Information for option
-    cerebro.add_common_data(feeds::CSVCommonData("../../example_data/Option/OptionInfo.csv",
-                                                 feeds::TimeStrConv::delimited_date)
+    cerebro.add_common_data(feeds::CSVCommonDataFeed("../../example_data/Option/OptionInfo.csv",
+                                                     feeds::TimeStrConv::delimited_date)
                                 .set_name("option"),
                             window);
 
-    cerebro.set_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
+    cerebro.add_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
     cerebro.set_log_dir("log");
     cerebro.set_verbose(OnlySummary);
     cerebro.run();

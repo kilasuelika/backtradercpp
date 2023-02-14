@@ -41,7 +41,7 @@ int main() {
                                "../../example_data/CSVDirectory/share_index_future",
                                std::array{2, 3, 5, 6, 4}, feeds::TimeStrConv::delimited_date)),
                        2);
-    cerebro.set_strategy(std::make_shared<EqualWeightStrategy>());
+    cerebro.add_strategy(std::make_shared<EqualWeightStrategy>());
     cerebro.set_range(date(2015, 6, 1), date(2022, 6, 1));
     cerebro.run();
 }

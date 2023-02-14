@@ -16,3 +16,6 @@ vs_examples/stock_xrd/log
 vs_examples/repeat_run/x64
 vs_examples/repeat_run/log
 vs_examples/repeat_run/log1
+
+vs_examples/optimize_strategy/x64
+vs_examples/optimize_strategy/log

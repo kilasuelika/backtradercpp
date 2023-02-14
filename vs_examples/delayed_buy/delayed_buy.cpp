@@ -34,6 +34,6 @@ int main() {
             .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
                                              feeds::TimeStrConv::non_delimited_date)),
         2); // 2 for window
-    cerebro.set_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
     cerebro.run();
 }

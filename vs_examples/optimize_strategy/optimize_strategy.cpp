@@ -16,6 +16,8 @@ struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
             adjust_to_volume_target(0, target_C);
         }
 
+        // data(0).close(-1);
+        std::cout << data(0).close(Sel::All, 0).transpose() << std::endl;
         // Short stocks.
         if (time_index() % period == 0) {
             VecArrXi target_S(assets(1));
@@ -65,4 +67,9 @@ int main() {
     cerebro.run();
 
     fmt::print(fmt::fg(fmt::color::yellow), "Exact profits: {}\n", -941686);
+    // cerebro.set_verbose(None);
+
+    // Cerebro cerebro1 = cerebro.clone();
+    // cerebro1.reset();
+    // cerebro1.run();
 }

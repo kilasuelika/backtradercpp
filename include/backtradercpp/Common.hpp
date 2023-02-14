@@ -22,6 +22,7 @@ namespace backtradercpp {
 using VecArrXd = Eigen::Array<double, Eigen::Dynamic, 1>;
 using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
 using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
+using RowMatrixXd = Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 using boost::gregorian::date;
 using boost::gregorian::date_duration;
@@ -30,6 +31,10 @@ using boost::gregorian::days;
 using boost::posix_time::hours;
 using boost::posix_time::ptime;
 using boost::posix_time::time_duration;
+
+enum OrderType { Market, Limit };
+enum OrderState { Success, Waiting, Expired };
+enum class Sel { All };
 
 struct OHLCData {
     VecArrXd open, high, low, close;
@@ -69,7 +74,7 @@ template <typename T> class FeedDataBuffer {
     int window() const { return window_; }
     void set_window(int window) {
         window_ = window;
-        data_.resize(window);
+        data_.set_capacity(window);
     }
     void push_back(const T &new_data) { data_.push_back(new_data); }
     virtual void push_back_() = 0;
@@ -95,21 +100,43 @@ class PriceFeedDataBuffer : public FeedDataBuffer<PriceFeedData> {
 
     VecArrXd open(int time = -1) const; // negative indices, -1 for latest
     double open(int time, int stock) const;
+    VecArrXd open(Sel s, int stock) const;
+    template <typename Ret = RowMatrixXd> Ret open(Sel r, Sel c) const;
+
     VecArrXd high(int time = -1) const;
     double high(int time, int stock) const;
+    VecArrXd high(Sel s, int stock) const;
+    template <typename Ret = RowMatrixXd> Ret high(Sel r, Sel c) const;
+
     VecArrXd low(int time = -1) const;
     double low(int time, int stock) const;
+    VecArrXd low(Sel s, int stock) const;
+    template <typename Ret = RowMatrixXd> Ret low(Sel r, Sel c) const;
+
     VecArrXd close(int time = -1) const;
     double close(int time, int stock) const;
+    VecArrXd close(Sel s, int stock) const;
+    template <typename Ret = RowMatrixXd> Ret close(Sel r, Sel c) const;
 
     VecArrXd adj_open(int time = -1) const;
     double adj_open(int time, int stock) const;
+    VecArrXd adj_open(Sel s, int stock) const;
+    template <typename Ret = RowMatrixXd> Ret adj_open(Sel r, Sel c) const;
+
     VecArrXd adj_high(int time = -1) const;
     double adj_high(int time, int stock) const;
+    VecArrXd adj_high(Sel s, int stock) const;
+    template <typename Ret = RowMatrixXd> Ret adj_high(Sel r, Sel c) const;
+
     VecArrXd adj_low(int time = -1) const;
     double adj_low(int time, int stock) const;
+    VecArrXd adj_low(Sel s, int stock) const;
+    template <typename Ret = RowMatrixXd> Ret adj_low(Sel r, Sel c) const;
+
     VecArrXd adj_close(int time = -1) const;
     double adj_close(int time, int stock) const;
+    VecArrXd adj_close(Sel s, int stock) const;
+    template <typename Ret = RowMatrixXd> Ret adj_close(Sel r, Sel c) const;
 
     VecArrXi volume(int time = -1) const;
     int volume(int time, int stock) const;
@@ -147,8 +174,6 @@ class CommonFeedDataBuffer : public FeedDataBuffer<CommonFeedData> {
     }
 };
 
-enum OrderType { Market, Limit };
-enum OrderState { Success, Waiting, Expired };
 struct PriceEvaluatorInput {
     double open, high, low, close;
 };
@@ -285,7 +310,7 @@ BK_DEFINE_FeedDataBuffer_EXTRA_ACCESSOS(num);
 BK_DEFINE_FeedDataBuffer_EXTRA_ACCESSOS(str);
 #undef BK_DEFINE_FULLASSETDATA_EXTRA_ACCESSOS
 
-void Portfolio::update(const Order &order, double adj_price) {
+inline void Portfolio::update(const Order &order, double adj_price) {
     int asset = order.asset;
     auto it = portfolio_items.find(asset);
     cash -= (order.value + order.fee);
@@ -341,26 +366,26 @@ inline void PortfolioItem::update_value(const ptime &date, double new_price, dou
     prev_adj_price = new_adj_price;
 }
 
-void OHLCData::resize(int assets) {
+inline void OHLCData::resize(int assets) {
     for (auto &ele : {&open, &high, &low, &close}) {
         ele->resize(assets);
     }
 }
-void backtradercpp::OHLCData::reset() {
+inline void OHLCData::reset() {
     for (auto &ele : {&open, &high, &low, &close}) {
         ele->setConstant(0);
     }
 }
 
-PriceFeedData::PriceFeedData(int assets) { valid = VecArrXb::Constant(assets, false); }
+inline PriceFeedData::PriceFeedData(int assets) { valid = VecArrXb::Constant(assets, false); }
 
-void PriceFeedData::resize(int assets) {
+inline void PriceFeedData::resize(int assets) {
     data.resize(assets);
     adj_data.resize(assets);
     volume.resize(assets);
     valid.resize(assets);
 }
-void backtradercpp::PriceFeedData::reset() {
+inline void backtradercpp::PriceFeedData::reset() {
     data.reset();
     adj_data.reset();
     valid.setConstant(false);
@@ -368,24 +393,41 @@ void backtradercpp::PriceFeedData::reset() {
     util::reset_value(num_data_, 0.0);
     util::reset_value(str_data_, std::string());
 }
-void PriceFeedData::validate_assets() {
+inline void PriceFeedData::validate_assets() {
     valid = (data.open > 0) && (data.high > 0) && (data.low > 0) && (data.close > 0);
 }
 
 #define BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, var, fun)                                \
-    VecArrXd PriceFeedDataBuffer::fun(int time) const { return data_[window_ + time].data.var; };  \
-    double PriceFeedDataBuffer::fun(int time, int stock) const {                                   \
+    inline VecArrXd PriceFeedDataBuffer::fun(int time) const {                                     \
+        return data_[window_ + time].data.var;                                                     \
+    };                                                                                             \
+    inline double PriceFeedDataBuffer::fun(int time, int stock) const {                            \
         return data_[window_ + time].data.var.coeff(stock);                                        \
+    }                                                                                              \
+    inline VecArrXd PriceFeedDataBuffer::fun(Sel s, int stock) const {                             \
+        VecArrXd res(window_);                                                                     \
+        for (int i = 0; i < data_.size(); ++i) {                                                   \
+            res.coeffRef(i) = data_[i].data.var.coeff(stock);                                      \
+        }                                                                                          \
+        return res;                                                                                \
+    }                                                                                              \
+    template <typename Ret> inline Ret PriceFeedDataBuffer::fun(Sel r, Sel c) const {              \
+        Ret res(window_, assets_);                                                                 \
+        for (int i = 0; i < data_.size(); ++i) {                                                   \
+            res.row(i) = data_[i].data.var;                                                        \
+        }                                                                                          \
+        return res;                                                                                \
     }
 #define BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR(type1, type2, var)                                  \
-    type1 PriceFeedDataBuffer::var(int time) const { return data_[window_ + time].var; };          \
-    type2 PriceFeedDataBuffer::var(int time, int stock) const {                                    \
+    inline type1 PriceFeedDataBuffer::var(int time) const { return data_[window_ + time].var; };   \
+    inline type2 PriceFeedDataBuffer::var(int time, int stock) const {                             \
         return data_[window_ + time].var.coeff(stock);                                             \
     }
 
-PriceFeedDataBuffer::PriceFeedDataBuffer(int assets, int window)
+inline PriceFeedDataBuffer::PriceFeedDataBuffer(int assets, int window)
     : FeedDataBuffer(window), assets_(assets){};
-backtradercpp::PriceFeedDataBuffer::PriceFeedDataBuffer(const PriceFeedData &data, int window)
+inline backtradercpp::PriceFeedDataBuffer::PriceFeedDataBuffer(const PriceFeedData &data,
+                                                               int window)
     : FeedDataBuffer(window), assets_(data.volume.size()) {
     data_.push_back(data);
 }

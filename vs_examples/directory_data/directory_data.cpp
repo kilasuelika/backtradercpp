@@ -20,6 +20,6 @@ int main() {
                 "../../example_data/CSVDirectory/raw", "../../example_data/CSVDirectory/adjust",
                 std::array{2, 3, 5, 6, 4}, feeds::TimeStrConv::delimited_date)),
         2); // 2 for window
-    cerebro.set_strategy(std::make_shared<BasicStrategy>());
+    cerebro.add_strategy(std::make_shared<BasicStrategy>());
     cerebro.run();
 }

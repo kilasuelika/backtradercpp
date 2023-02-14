@@ -35,13 +35,37 @@ struct GenericTax {
     double long_tax_rate = 0, short_tax_rate = 0;
 };
 class BrokerAggragator;
-struct BaseBroker;
+class BaseBroker;
+
+struct BaseBrokerImplLogUtil {
+    BaseBrokerImplLogUtil() = default;
+    BaseBrokerImplLogUtil(const BaseBrokerImplLogUtil &util_)
+        : log(util_.log), log_dir(util_.log_dir), name(util_.name) {
+        if (log) {
+        }
+    }
+    void set_log_dir(const std::string &dir, const std::string &name);
+    void write_transaction(const std::string &log_) {
+        if (log)
+            transaction_file_ << log << std::endl;
+    }
+    void write_position(const std::string &log_) {
+        if (log)
+            position_file_ << log << std::endl;
+    }
+
+    bool log = false;
+    std::string log_dir;
+    std::string name;
+    std::ofstream transaction_file_, position_file_;
+};
 
 class BaseBrokerImpl {
 
   public:
     BaseBrokerImpl(double cash = 10000, double long_rate = 0, double short_rate = 0,
                    double long_tax_rate = 0, double short_tax_rate = 0);
+    // BaseBrokerImpl(const BaseBrokerImpl &impl_);
 
     void process(Order &order);
     void process_old_orders();
@@ -61,6 +85,7 @@ class BaseBrokerImpl {
     void set_commission_rate(double long_rate, double short_rate) {
         commission_ = std::make_shared<GenericCommission>(long_rate, short_rate);
     }
+
     void set_log_dir(const std::string &dir, int index);
 
     void resize(int n);
@@ -83,6 +108,10 @@ class BaseBrokerImpl {
         return name_.empty() ? std::to_string(index) : name_;
     }
 
+    virtual std::shared_ptr<BaseBrokerImpl> clone() {
+        return std::make_shared<BaseBrokerImpl>(*this);
+    }
+
   protected:
     friend class BrokerAggragator;
     friend class Cerebro;
@@ -102,12 +131,11 @@ class BaseBrokerImpl {
 
     bool allow_short_ = false, allow_default_ = false;
 
-    bool log_ = false;
-
-    std::ofstream transaction_file_, position_file_;
     std::vector<std::string> codes_;
 
     analysis::TotalValueAnalyzer analyzer_;
+
+    BaseBrokerImplLogUtil log_util_;
 
     void _write_position();
 };
@@ -148,7 +176,7 @@ class StockBrokerImpl : public BaseBrokerImpl {
 
 class BaseBroker {
   protected:
-    std::shared_ptr<BaseBrokerImpl> sp;
+    std::shared_ptr<BaseBrokerImpl> sp = nullptr;
 
   public:
     BaseBroker(double cash = 10000, double long_rate = 0, double short_rate = 0,
@@ -226,7 +254,7 @@ class BaseBroker {
 
 class StockBroker : public BaseBroker {
   protected:
-    std::shared_ptr<StockBrokerImpl> sp;
+    std::shared_ptr<StockBrokerImpl> sp = nullptr;
 
   public:
     StockBroker(double cash = 10000, double long_rate = 0, double short_rate = 0,
@@ -272,6 +300,8 @@ class StockBroker : public BaseBroker {
         return *this;
     }
 };
+
+struct BrokerAggragatorLogUtil {};
 class BrokerAggragator {
   public:
     void process(OrderPool &pool);
@@ -336,6 +366,8 @@ class BrokerAggragator {
         _collect_portfolio();
     }
 
+    void sync_feed_agg(const feeds::PriceFeedAggragator &feed_agg_);
+
   private:
     // std::shared_ptr<feeds::FeedsAggragator> feed_agg_;
     std::vector<ptime> times_;
@@ -352,7 +384,7 @@ class BrokerAggragator {
     bool log_ = false;
     std::string log_dir_;
 
-    std::ofstream wealth_file_;
+    std::shared_ptr<std::ofstream> wealth_file_;
     analysis::TotalValueAnalyzer total_value_analyzer_;
     analysis::MetricAnalyzer metric_analyzer_;
 
@@ -361,6 +393,23 @@ class BrokerAggragator {
     void _write_log();
     void _collect_portfolio();
 };
+
+inline void backtradercpp::broker::BaseBrokerImplLogUtil::set_log_dir(const std::string &dir,
+                                                                      const std::string &name) {
+    log = true;
+    log_dir = dir;
+    this->name = name;
+    transaction_file_ =
+        std::ofstream(std::filesystem::path(dir) /
+                      std::filesystem ::path(std::format("Transaction_{}.csv", name)));
+    transaction_file_ << "Date, CashBefore,  ID, Code, PositionBefore,  Direction, Volume, Price, "
+                         "Value, Fee, PositionAfter, CashAfter,  Info"
+                      << std::endl;
+
+    position_file_ = std::ofstream(std::filesystem::path(dir) /
+                                   std::filesystem ::path(std::format("Position_{}.csv", name)));
+    position_file_ << "Date, ID, Code, Position, Price, Value, State" << std::endl;
+}
 
 inline BaseBrokerImpl::BaseBrokerImpl(double cash, double long_commission_rate,
                                       double short_commission_rate, double long_tax_rate,
@@ -420,15 +469,11 @@ inline void BaseBrokerImpl::process(Order &order) {
 
                     order.state = OrderState::Success;
 
-                    if (log_) {
-                        transaction_file_
-                            << std::format("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
-                                           util::to_string(time), cash_before, asset, codes_[asset],
-                                           position_before, order.volume > 0 ? "+" : "-",
-                                           order.volume, order.price, order.value, order.fee,
-                                           position_after, cash_after, "")
-                            << std::endl;
-                    }
+                    log_util_.write_transaction(std::format(
+                        "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}", util::to_string(time),
+                        cash_before, asset, codes_[asset], position_before,
+                        order.volume > 0 ? "+" : "-", order.volume, order.price, order.value,
+                        order.fee, position_after, cash_after, ""));
                 }
             }
         }
@@ -451,9 +496,9 @@ inline void BaseBrokerImpl::process_old_orders() {
 }
 
 void BaseBrokerImpl::update_info() {
-    position_file_ << std::format("{}, {}, {}, {}, {}, {}", util::to_string(current_->time), "",
-                                  "Cash", "", "", portfolio_.cash, "")
-                   << std::endl;
+    log_util_.write_position(std::format("{}, {}, {}, {}, {}, {}, {}",
+                                         util::to_string(current_->time), "", "Cash", "", "",
+                                         portfolio_.cash, ""));
     for (auto &[asset, item] : portfolio_.portfolio_items) {
         std::string state = "";
         if (current_->valid.coeff(asset)) {
@@ -463,12 +508,9 @@ void BaseBrokerImpl::update_info() {
             state = "Invalid";
         }
 
-        if (log_) {
-            position_file_ << std::format("{}, {}, {}, {}, {}, {}", util::to_string(current_->time),
-                                          asset, codes_[asset], item.position, item.prev_price,
-                                          item.value, state)
-                           << std::endl;
-        }
+        log_util_.write_position(std::format("{}, {}, {}, {}, {}, {}, {}",
+                                             util::to_string(current_->time), asset, codes_[asset],
+                                             item.position, item.prev_price, item.value, state));
     }
     portfolio_.update_info();
     analyzer_.update_total_value(portfolio_.total_value);
@@ -479,7 +521,7 @@ inline void BaseBrokerImpl::resize(int n) {}
 void BaseBrokerImpl::set_feed(feeds::BasePriceDataFeed data) {
 
     feed_ = data;
-    analyzer_.set_name(feed_.name());
+    analyzer_.set_name(data.name());
 
     resize(data.assets());
     current_ = data.data_ptr();
@@ -520,11 +562,10 @@ void StockBrokerImpl::process_trems() {
         int position_after = portfolio_.position(cd);
         double cash_after = portfolio_.cash;
 
-        transaction_file_ << std::format("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
-                                         util::to_string(ptime(dt)), cash_before, cd, codes_[cd],
-                                         position_before, "", vol, 0, cash, "", position_after,
-                                         cash_after, "XRD")
-                          << std::endl;
+        log_util_.write_transaction(
+            std::format("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
+                        util::to_string(ptime(dt)), cash_before, cd, codes_[cd], position_before,
+                        "", vol, 0, cash, "", position_after, cash_after, "XRD"));
     }
 }
 
@@ -634,13 +675,13 @@ inline void BrokerAggragator::update_info() {
 }
 
 void BrokerAggragator::_write_log() {
-    wealth_file_ << std::format("{}, {}", util::to_string(times_.back()), wealth_);
+    *wealth_file_ << std::format("{}, {}", util::to_string(times_.back()), wealth_);
     for (int i = 0; i < brokers_.size(); ++i) {
         double cash = brokers_[i].cash();
         double holding_value = values_[i].sum();
-        wealth_file_ << std::format(", {}, {}, {}", cash, holding_value, cash + holding_value);
+        *wealth_file_ << std::format(", {}, {}, {}", cash, holding_value, cash + holding_value);
     }
-    wealth_file_ << std::endl;
+    *wealth_file_ << std::endl;
 }
 void backtradercpp::broker::BrokerAggragator::_collect_portfolio() {
     for (int i = 0; i < brokers_.size(); ++i) {
@@ -653,18 +694,7 @@ void backtradercpp::broker::BrokerAggragator::_collect_portfolio() {
 }
 
 inline void BaseBrokerImpl::set_log_dir(const std::string &dir, int index) {
-    log_ = true;
-    transaction_file_ =
-        std::ofstream(std::filesystem::path(dir) /
-                      std::filesystem ::path(std::format("Transaction_{}.csv", name(index))));
-    transaction_file_ << "Date, CashBefore,  ID, Code, PositionBefore,  Direction, Volume, Price, "
-                         "Value, Fee, PositionAfter, CashAfter,  Info"
-                      << std::endl;
-
-    position_file_ =
-        std::ofstream(std::filesystem::path(dir) /
-                      std::filesystem ::path(std::format("Position_{}.csv", name(index))));
-    position_file_ << "Date, ID, Code, Position, Price, Value, State" << std::endl;
+    log_util_.set_log_dir(dir, name(index));
 }
 
 inline void BrokerAggragator::set_log_dir(const std::string &dir) {
@@ -677,15 +707,15 @@ inline void BrokerAggragator::set_log_dir(const std::string &dir) {
 
     log_ = true;
 
-    wealth_file_ =
-        std::ofstream(std::filesystem::path(dir) / std::filesystem ::path("TotalValue.csv"));
-    wealth_file_ << "Date, TotalValue";
+    wealth_file_ = std::make_shared<std::ofstream>(std::filesystem::path(dir) /
+                                                   std::filesystem ::path("TotalValue.csv"));
+    *wealth_file_ << "Date, TotalValue";
     for (int i = 0; i < brokers_.size(); ++i) {
         const auto &name_ = brokers_[i].name(i);
-        wealth_file_ << std::format(
+        *wealth_file_ << std::format(
             ", Broker_{}_Cash, Broker_{}_HoldingValue, Broker_{}_TotalValue", name_, name_, name_);
     }
-    wealth_file_ << std::endl;
+    *wealth_file_ << std::endl;
 }
 inline void BrokerAggragator::add_broker(const BaseBroker &broker) {
     broker_name_map_[broker.feed().name()] = brokers_.size();
@@ -697,6 +727,12 @@ inline void BrokerAggragator::add_broker(const BaseBroker &broker) {
 
     total_values_.conservativeResize(total_values_.size() + 1);
     total_values_.bottomRows(1) = broker.portfolio().cash;
+}
+
+inline void BrokerAggragator::sync_feed_agg(const feeds::PriceFeedAggragator &feed_agg_) {
+    for (int i = 0; i < brokers_.size(); ++i) {
+        brokers_[i].set_feed(feed_agg_.feed(i));
+    }
 }
 
 inline void BaseBroker::set_log_dir(const std::string &dir, int index) {
