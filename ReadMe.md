@@ -1,6 +1,6 @@
 # backtradercpp -- A header-only C++ 20 back testing library
 
-As the name suggesting, this library is partially inspired by `backtrader` on Python. In my own use, `backtrader` constantly made me confusing so I decide to write my own library.
+As the name suggesting, this library is partially inspired by [backtrader](https://www.backtrader.com/) on Python. In my own use, backtrader constantly made me confusing so I decide to write my own library.
 
 ## ToDo
 
@@ -404,7 +404,7 @@ int main() {
 
 ### Dump data
 
-This library provides some facilities for automatic dump data management. So when the first run, you can dump calculated data, then for following runs you can access dumped data to avoid repeat calculation. Note that price and common data are not dumped. Use `set_timed_vec()` to set values, and `get_timed_vec()` to get data. There are other function such as `set_var(), set_timed_var()` for double value, `set_mat(), set_timed_mat()` for 2D `Eigen::Array<>`. Here `_timed_` means data are indexed by time so in each period you get different data. If you want to use dump, then you need to `set_dump_file(filename, read_dump=true)`. `read_dump` means whether to read dump from file. If you only want to overwrite existing dump, then set it to `false`.
+This library provides some facilities for automatic data dump management. So when the first run, you can dump calculated data, then for following runs you can access dumped data to avoid repeat calculation. Note that price and common data are not dumped. Use `set_timed_vec()` to set values, and `get_timed_vec()` to get data. There are other function such as `set_var(), set_timed_var()` for double value, `set_mat(), set_timed_mat()` for 2D `RowArrayXd`. Here `_timed_` means data are indexed by time so in each period you get different data. If you want to use dump, then you need to `set_dump_file(filename, read_dump=true)`. `read_dump` means whether to read dump from file. If you only want to overwrite existing dump, then set it to `false`. Note that all numeric data use double values, so you need to cast if original data is `int`.
 
 Run the following program two times. You will find that in the first time, it prints "Calculating data." while in the second, it prints "Using dumped data.".
 
@@ -626,7 +626,10 @@ Here `VecArrX*` is `eigen` type:
 using VecArrXd = Eigen::Array<double, Eigen::Dynamic, 1>;
 using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
 using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
+using RowArrayXd = Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 ```
+
+
 
 ### Core logic
 
