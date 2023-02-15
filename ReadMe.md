@@ -7,7 +7,7 @@ As the name suggesting, this library is partially inspired by `backtrader` on Py
 - [ ] Alignment between price and common data
 - [ ] Multiple strategies support
 - [ ] Strategy Optimizer
-- [ ] Strategy data dump (not price data)
+- [x] Strategy data dump (not price data)
 - [x] History data to vector and matrix
 - [ ] data().ret() and data().adj_ret()
 - [ ] data().invalid_count(): count invalid data count in window
@@ -383,7 +383,7 @@ int main() {
 
     cerebro.add_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
     cerebro.set_log_dir("log");
-    cerebro.set_verbose(OnlySummary);
+    cerebro.set_verbose(VerboseLevel::OnlySummary);
     cerebro.run();
 
     fmt::print(fmt::fg(fmt::color::yellow), "Exact profits: {}\n", -941686);
@@ -404,29 +404,98 @@ int main() {
 
 ### Dump data
 
-This library provides some facilities for automatic dump data management. So when the first run, you can dump calculated data, then for following runs you can access dumped data to avoid repeat calculation. Note that price and common data are not dumped.
+This library provides some facilities for automatic dump data management. So when the first run, you can dump calculated data, then for following runs you can access dumped data to avoid repeat calculation. Note that price and common data are not dumped. Use `set_timed_vec()` to set values, and `get_timed_vec()` to get data. There are other function such as `set_var(), set_timed_var()` for double value, `set_mat(), set_timed_mat()` for 2D `Eigen::Array<>`. Here `_timed_` means data are indexed by time so in each period you get different data. If you want to use dump, then you need to `set_dump_file(filename, read_dump=true)`. `read_dump` means whether to read dump from file. If you only want to overwrite existing dump, then set it to `false`.
+
+Run the following program two times. You will find that in the first time, it prints "Calculating data." while in the second, it prints "Using dumped data.".
 
 ```cpp
-// dump_data.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+#include "../../include/backtradercpp/Cerebro.hpp"
+#include <boost/math/distributions.hpp>
+using namespace backtradercpp;
 
-#include <iostream>
+struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
+    explicit DeltaOptionHedgingStrategy(int period = 1) : period(period) {}
 
-int main()
-{
-    std::cout << "Hello World!\n";
+    int period = 1;
+    void init() override { set_dump_file("dump.bin"); }
+    void run() override {
+
+        // Buy options at the first time.
+        if (time_index() == 0) {
+            VecArrXi target_C(assets("option"));
+            target_C.setConstant(100); // Buy 100 options for each path.
+            adjust_to_volume_target("option", target_C);
+        }
+        // Short stocks.
+        if (time_index() % period == 0) {
+            VecArrXi target_S;
+            if (auto v = get_timed_vec("delta")) {
+                fmt::print("Using dumped data.\n");
+
+                target_S = v->cast<int>();
+            } else {
+                fmt::print("Calculating data.\n");
+
+                target_S.resize(assets("stock"));
+
+                // Accessing read common data.
+                double sigma = common_data("option").num(-1, "sigma");
+                double K = common_data("option").num(-1, "K");
+                double rf = common_data("option").num(-1, "rf");
+
+                for (int i = 0; i < assets("stock"); ++i) {
+                    double S = data("stock").close(-1, i);
+                    double T = common_data("option").num(-1, "time");
+
+                    double d1 =
+                        (std::log(S / K) + (rf + sigma * sigma / 2) * T) / (sigma * std::sqrt(T));
+                    double delta = boost::math::cdf(boost::math::normal(), d1);
+
+                    target_S.coeffRef(i) = -int(delta * 100);
+                }
+                set_timed_vec(
+                    "delta",
+                    target_S
+                        .cast<double>()); // store dumped data. vec is double type, so need to cast.
+            }
+
+            adjust_to_volume_target("stock", target_S);
+        }
+    }
+};
+
+int main() {
+    Cerebro cerebro;
+    // code_extractor: extract code form filename.
+    int window = 2;
+    // Option price.
+    cerebro.add_broker(broker::BaseBroker(0).allow_default().set_feed(
+                           feeds::CSVTabPriceData("../../example_data/Option/Option.csv",
+                                                  feeds::TimeStrConv::delimited_date)
+                               .set_name("option")),
+                       window);
+    // Stock price
+    cerebro.add_broker(broker::BaseBroker(0).allow_short().set_feed(
+                           feeds::CSVTabPriceData("../../example_data/Option/Stock.csv",
+                                                  feeds::TimeStrConv::delimited_date)
+                               .set_name("stock")),
+                       window);
+    // Information for option
+    cerebro.add_common_data(feeds::CSVCommonDataFeed("../../example_data/Option/OptionInfo.csv",
+                                                     feeds::TimeStrConv::delimited_date)
+                                .set_name("option"),
+                            window);
+
+    cerebro.add_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
+    cerebro.set_log_dir("log");
+    cerebro.set_verbose(VerboseLevel::OnlySummary);
+    cerebro.run();
+
+    fmt::print(fmt::fg(fmt::color::yellow), "Exact profits: {}\n", -941686);
+    double profit0 =
+        cerebro.performance()[0]
+            .profit; // index 0 for performance of overall portfolio. Index 1 is for the 0th broker.
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
 ```
 
 ### Optimize strategy
