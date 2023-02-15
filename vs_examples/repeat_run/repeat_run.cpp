@@ -64,7 +64,7 @@ int main() {
 
     cerebro.add_strategy(std::make_shared<DeltaOptionHedgingStrategy>());
     cerebro.set_log_dir("log");
-    cerebro.set_verbose(OnlySummary);
+    cerebro.set_verbose(VerboseLevel::OnlySummary);
     cerebro.run();
 
     fmt::print(fmt::fg(fmt::color::yellow), "Exact profits: {}\n", -941686);

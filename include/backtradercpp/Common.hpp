@@ -22,7 +22,7 @@ namespace backtradercpp {
 using VecArrXd = Eigen::Array<double, Eigen::Dynamic, 1>;
 using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
 using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
-using RowMatrixXd = Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+using RowArrayXd = Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 using boost::gregorian::date;
 using boost::gregorian::date_duration;
@@ -101,42 +101,42 @@ class PriceFeedDataBuffer : public FeedDataBuffer<PriceFeedData> {
     VecArrXd open(int time = -1) const; // negative indices, -1 for latest
     double open(int time, int stock) const;
     VecArrXd open(Sel s, int stock) const;
-    template <typename Ret = RowMatrixXd> Ret open(Sel r, Sel c) const;
+    template <typename Ret = RowArrayXd> Ret open(Sel r, Sel c) const;
 
     VecArrXd high(int time = -1) const;
     double high(int time, int stock) const;
     VecArrXd high(Sel s, int stock) const;
-    template <typename Ret = RowMatrixXd> Ret high(Sel r, Sel c) const;
+    template <typename Ret = RowArrayXd> Ret high(Sel r, Sel c) const;
 
     VecArrXd low(int time = -1) const;
     double low(int time, int stock) const;
     VecArrXd low(Sel s, int stock) const;
-    template <typename Ret = RowMatrixXd> Ret low(Sel r, Sel c) const;
+    template <typename Ret = RowArrayXd> Ret low(Sel r, Sel c) const;
 
     VecArrXd close(int time = -1) const;
     double close(int time, int stock) const;
     VecArrXd close(Sel s, int stock) const;
-    template <typename Ret = RowMatrixXd> Ret close(Sel r, Sel c) const;
+    template <typename Ret = RowArrayXd> Ret close(Sel r, Sel c) const;
 
     VecArrXd adj_open(int time = -1) const;
     double adj_open(int time, int stock) const;
     VecArrXd adj_open(Sel s, int stock) const;
-    template <typename Ret = RowMatrixXd> Ret adj_open(Sel r, Sel c) const;
+    template <typename Ret = RowArrayXd> Ret adj_open(Sel r, Sel c) const;
 
     VecArrXd adj_high(int time = -1) const;
     double adj_high(int time, int stock) const;
     VecArrXd adj_high(Sel s, int stock) const;
-    template <typename Ret = RowMatrixXd> Ret adj_high(Sel r, Sel c) const;
+    template <typename Ret = RowArrayXd> Ret adj_high(Sel r, Sel c) const;
 
     VecArrXd adj_low(int time = -1) const;
     double adj_low(int time, int stock) const;
     VecArrXd adj_low(Sel s, int stock) const;
-    template <typename Ret = RowMatrixXd> Ret adj_low(Sel r, Sel c) const;
+    template <typename Ret = RowArrayXd> Ret adj_low(Sel r, Sel c) const;
 
     VecArrXd adj_close(int time = -1) const;
     double adj_close(int time, int stock) const;
     VecArrXd adj_close(Sel s, int stock) const;
-    template <typename Ret = RowMatrixXd> Ret adj_close(Sel r, Sel c) const;
+    template <typename Ret = RowArrayXd> Ret adj_close(Sel r, Sel c) const;
 
     VecArrXi volume(int time = -1) const;
     int volume(int time, int stock) const;
@@ -414,7 +414,7 @@ inline void PriceFeedData::validate_assets() {
     template <typename Ret> inline Ret PriceFeedDataBuffer::fun(Sel r, Sel c) const {              \
         Ret res(window_, assets_);                                                                 \
         for (int i = 0; i < data_.size(); ++i) {                                                   \
-            res.row(i) = data_[i].data.var;                                                        \
+            res.row(i) = data_[i].data.var.transpose();                                            \
         }                                                                                          \
         return res;                                                                                \
     }

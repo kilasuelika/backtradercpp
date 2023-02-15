@@ -7,7 +7,7 @@ As the name suggesting, this library is partially inspired by `backtrader` on Py
 - [ ] Alignment between price and common data
 - [ ] Multiple strategies support
 - [ ] Strategy Optimizer
-- [ ] Strategy data dump (not price data)
+- [x] Strategy data dump (not price data)
 - [x] History data to vector and matrix
 - [ ] data().ret() and data().adj_ret()
 - [ ] data().invalid_count(): count invalid data count in window
@@ -80,7 +80,9 @@ In this example, we compare performances between different commission rates.
 
 ### Dump data
 
-This library provides some facilities for automatic dump data management. So when the first run, you can dump calculated data, then for following runs you can access dumped data to avoid repeat calculation. Note that price and common data are not dumped.
+This library provides some facilities for automatic dump data management. So when the first run, you can dump calculated data, then for following runs you can access dumped data to avoid repeat calculation. Note that price and common data are not dumped. Use `set_timed_vec()` to set values, and `get_timed_vec()` to get data. There are other function such as `set_var(), set_timed_var()` for double value, `set_mat(), set_timed_mat()` for 2D `Eigen::Array<>`. Here `_timed_` means data are indexed by time so in each period you get different data. If you want to use dump, then you need to `set_dump_file(filename, read_dump=true)`. `read_dump` means whether to read dump from file. If you only want to overwrite existing dump, then set it to `false`.
+
+Run the following program two times. You will find that in the first time, it prints "Calculating data." while in the second, it prints "Using dumped data.".
 
 ```cpp
 ![[vs_examples/dump_data/dump_data.cpp]]

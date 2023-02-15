@@ -10,28 +10,28 @@
 #include <boost/serialization/unordered_map.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+#include <boost/date_time/posix_time/time_serialize.hpp>
+
 #include "3rd_party/boost_serialization_helper/save_load_eigen.h"
 
 #define STRATEGYDUMPUTIL_SETGET_IMPL(name, type, ret_type)                                         \
-    inline void StrategyDumpUtil::set_##name##_dump(const std::string &key, type v) {              \
-        name##_var[key] = v;                                                                       \
-    }                                                                                              \
-    inline std::optional<ret_type> StrategyDumpUtil::get_##name##_dump(const std::string &key) {   \
-        auto it = name##_var.find(key);                                                            \
-        if (it != name##_var.end()) {                                                              \
+    inline void StrategyDumpUtil::set_##name(const std::string &key, type v) { name[key] = v; }    \
+    inline std::optional<ret_type> StrategyDumpUtil::get_##name(const std::string &key) {          \
+        auto it = name.find(key);                                                                  \
+        if (it != name.end()) {                                                                    \
             return it->second;                                                                     \
         } else {                                                                                   \
             return {};                                                                             \
         }                                                                                          \
     }                                                                                              \
-    inline void StrategyDumpUtil::set_timed_##name##_dump(const ptime &t, const std::string &key,  \
-                                                          type v) {                                \
-        timed_##name##_var[t][key] = v;                                                            \
+    inline void StrategyDumpUtil::set_timed_##name(const ptime &t, const std::string &key,         \
+                                                   type v) {                                       \
+        timed_##name[t][key] = v;                                                                  \
     }                                                                                              \
-    inline std::optional<ret_type> StrategyDumpUtil::get_timed_##name##_dump(                      \
-        const ptime &t, const std::string &key) {                                                  \
-        auto it1 = timed_##name##_var.find(t);                                                     \
-        if (it1 != timed_##name##_var.end()) {                                                     \
+    inline std::optional<ret_type> StrategyDumpUtil::get_timed_##name(const ptime &t,              \
+                                                                      const std::string &key) {    \
+        auto it1 = timed_##name.find(t);                                                           \
+        if (it1 != timed_##name.end()) {                                                           \
             auto it2 = it1->second.find(key);                                                      \
             if (it2 != it1->second.end()) {                                                        \
                 return it2->second;                                                                \
@@ -48,45 +48,70 @@ class Cerebro;
 
 class StrategyDumpUtil {
   public:
-    void set_d_dump(const std::string &key, double v);
-    void set_dvec_dump(const std::string &key, const Eigen::VectorXd &v);
-    void set_dmat_dump(const std::string &key, const RowMatrixXd &v);
+    void set_var(const std::string &key, double v);
+    void set_vars(const std::unordered_map<std::string, double> &m) { util::update_map(var, m); };
+    void set_vec(const std::string &key, const VecArrXd &v);
+    void set_mat(const std::string &key, const RowArrayXd &v);
 
-    std::optional<double> get_d_dump(const std::string &key);
-    std::optional<Eigen::VectorXd> get_dvec_dump(const std::string &key);
-    std::optional<RowMatrixXd> get_dmat_dump(const std::string &key);
+    std::optional<double> get_var(const std::string &key);
+    std::optional<VecArrXd> get_vec(const std::string &key);
+    std::optional<RowArrayXd> get_mat(const std::string &key);
 
-    void set_timed_d_dump(const ptime &t, const std::string &key, double v);
-    void set_timed_dvec_dump(const ptime &t, const std::string &key, const Eigen::VectorXd &v);
-    void set_timed_dmat_dump(const ptime &t, const std::string &key, const RowMatrixXd &v);
+    void set_timed_var(const ptime &t, const std::string &key, double v);
+    void set_timed_vec(const ptime &t, const std::string &key, const VecArrXd &v);
+    void set_timed_mat(const ptime &t, const std::string &key, const RowArrayXd &v);
 
-    std::optional<double> get_timed_d_dump(const ptime &t, const std::string &key);
-    std::optional<Eigen::VectorXd> get_timed_dvec_dump(const ptime &t, const std::string &key);
-    std::optional<RowMatrixXd> get_timed_dmat_dump(const ptime &t, const std::string &key);
+    std::optional<double> get_timed_var(const ptime &t, const std::string &key);
+    std::optional<VecArrXd> get_timed_vec(const ptime &t, const std::string &key);
+    std::optional<RowArrayXd> get_timed_mat(const ptime &t, const std::string &key);
 
     template <class Archive> void serialize(Archive &ar, const unsigned int version) {
-        ar &d_var;
-        ar &dvec_var;
-        ar &dmat_var;
+        ar &var;
+        ar &vec;
+        ar &mat;
 
-        ar &timed_d_var;
-        ar &timed_dvec_var;
-        ar &timed_dmat_var;
+        ar &timed_var;
+        ar &timed_vec;
+        ar &timed_mat;
+    }
+
+    void load() {
+        if (std::filesystem::exists(std::filesystem::path(dump_file_name_))) {
+            std::ifstream file(dump_file_name_);
+            boost::archive::binary_iarchive i(file);
+            i >> (*this);
+        }
+    }
+    void save() {
+        std::ofstream file(dump_file_name_);
+        boost::archive::binary_oarchive o(file);
+        o << *this;
+    };
+    void set_dump_file(const std::string &file, bool read_dump) {
+        dump_file_name_ = file;
+        read_dump_ = read_dump;
+        save_dump_ = true;
+        if (read_dump)
+            load();
+    }
+    void finish() {
+        if (save_dump_)
+            save();
     }
 
   private:
     // std::unordered_map<std::string, int> int_var;
-    std::unordered_map<std::string, double> d_var;
-    std::unordered_map<std::string, Eigen::VectorXd> dvec_var;
-    std::unordered_map<std::string, RowMatrixXd> dmat_var;
+    std::unordered_map<std::string, double> var;
+    std::unordered_map<std::string, VecArrXd> vec;
+    std::unordered_map<std::string, RowArrayXd> mat;
 
-    std::unordered_map<ptime, std::unordered_map<std::string, int>> timed_d_var;
-    std::unordered_map<ptime, std::unordered_map<std::string, Eigen::VectorXd>> timed_dvec_var;
-    std::unordered_map<ptime, std::unordered_map<std::string, RowMatrixXd>> timed_dmat_var;
+    std::unordered_map<ptime, std::unordered_map<std::string, int>> timed_var;
+    std::unordered_map<ptime, std::unordered_map<std::string, VecArrXd>> timed_vec;
+    std::unordered_map<ptime, std::unordered_map<std::string, RowArrayXd>> timed_mat;
 
-    bool dump_ = false;
+    bool save_dump_ = false;
+    bool read_dump_ = false;
     std::string dump_file_name_;
-    std::ifstream dump_file_;
 };
 
 class GenericStrategy {
@@ -110,6 +135,7 @@ class GenericStrategy {
 
     bool data_valid(int feed) const { return price_feed_agg_->data_valid(feed); }
 
+    virtual void init(){};
     virtual void init_strategy(feeds::PriceFeedAggragator *feed_agg,
                                feeds::CommonFeedAggragator *common_feed_agg,
                                broker::BrokerAggragator *broker_agg);
@@ -234,14 +260,47 @@ class GenericStrategy {
 
     int broker_id(const std::string &name) const { return broker_agg_->broker_id(name); }
 
-    void set_int_vars(const std::unordered_map<std::string, int> &vars) { int_vars_ = vars; }
-    void set_int_var(const std::string &name, int val) { int_vars_[name] = val; }
-    auto get_int_var(const std::string &name) { return int_vars_[name]; }
-    void set_double_vars(const std::unordered_map<std::string, double> &vars) {
-        double_vars_ = vars;
+    // void set_int_vars(const std::unordered_map<std::string, int> &vars) { int_vars_ = vars; }
+    // void set_int_var(const std::string &name, int val) { int_vars_[name] = val; }
+    // auto get_int_var(const std::string &name) { return int_vars_[name]; }
+    // void set_vars(const std::unordered_map<std::string, double> &vars) { double_vars_ = vars; }
+    // void set_var(const std::string &name, double val) { double_vars_[name] = val; }
+    // auto get_var(const std::string &name) { return double_vars_[name]; }
+
+    // Set read_dump to false if only want to store dump.
+    void set_dump_file(const std::string &file, bool read_dump = true) {
+        dump_.set_dump_file(file, read_dump);
     }
-    void set_double_var(const std::string &name, double val) { double_vars_[name] = val; }
-    auto get_double_var(const std::string &name) { return double_vars_[name]; }
+
+    void set_var(const std::string &key, double v) { return dump_.set_var(key, v); }
+    void set_vars(const std::unordered_map<std::string, double> &m) { dump_.set_vars(m); }
+    void set_vec(const std::string &key, const VecArrXd &v) { dump_.set_vec(key, v); }
+    void set_mat(const std::string &key, const RowArrayXd &v) { dump_.set_mat(key, v); }
+
+    std::optional<double> get_var(const std::string &key) { return dump_.get_var(key); }
+    std::optional<VecArrXd> get_vec(const std::string &key) { return dump_.get_vec(key); }
+    std::optional<RowArrayXd> get_mat(const std::string &key) { return dump_.get_mat(key); }
+
+    void set_timed_var(const std::string &key, double v) { dump_.set_timed_var(time(), key, v); }
+    void set_timed_vec(const std::string &key, const VecArrXd &v) {
+        dump_.set_timed_vec(time(), key, v);
+    }
+    void set_timed_mat(const std::string &key, const RowArrayXd &v) {
+        dump_.set_timed_mat(time(), key, v);
+    };
+
+    std::optional<double> get_timed_var(const std::string &key) {
+        return dump_.get_timed_var(time(), key);
+    }
+    std::optional<VecArrXd> get_timed_vec(const std::string &key) {
+        return dump_.get_timed_vec(time(), key);
+    }
+    std::optional<RowArrayXd> get_timed_mat(const std::string &key) {
+        return dump_.get_timed_mat(time(), key);
+    }
+
+    virtual void finish(){};
+    void finish_all() { dump_.save(); }
 
     virtual ~GenericStrategy() = default;
 
@@ -256,14 +315,13 @@ class GenericStrategy {
 
     OrderPool order_pool_;
 
-    std::unordered_map<std::string, int> int_vars_;
-    std::unordered_map<std::string, double> double_vars_;
+    StrategyDumpUtil dump_;
 };
 
 //--------------------------------------------------------------------------------------------------------------
-STRATEGYDUMPUTIL_SETGET_IMPL(d, double, double)
-STRATEGYDUMPUTIL_SETGET_IMPL(dvec, const Eigen::VectorXd &, Eigen::VectorXd)
-STRATEGYDUMPUTIL_SETGET_IMPL(dmat, const RowMatrixXd &, RowMatrixXd)
+STRATEGYDUMPUTIL_SETGET_IMPL(var, double, double)
+STRATEGYDUMPUTIL_SETGET_IMPL(vec, const VecArrXd &, VecArrXd)
+STRATEGYDUMPUTIL_SETGET_IMPL(mat, const RowArrayXd &, RowArrayXd)
 
 inline void GenericStrategy::init_strategy(feeds::PriceFeedAggragator *feed_agg,
                                            feeds::CommonFeedAggragator *common_feed_agg,
@@ -272,6 +330,8 @@ inline void GenericStrategy::init_strategy(feeds::PriceFeedAggragator *feed_agg,
     common_feed_agg_ = common_feed_agg;
 
     broker_agg_ = broker_agg;
+
+    init();
 }
 
 #define BK_STRATEGY_PORTFOLIO_MEMBER_ACESSOR(name, type, vectype)                                  \

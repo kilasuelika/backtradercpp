@@ -4,6 +4,7 @@
 #include <iostream>
 #include <boost/date_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/functional/hash.hpp>
 
 #include <format>
 #include <fmt/format.h>
@@ -82,6 +83,11 @@ template <typename T> void reset_ifstream(T &f) {
     f.seekg(0, std::ios::beg);
 }
 
+template <typename T1, typename T2> void update_map(T1 &dest, const T2 &src) {
+    for (const auto &[k, v] : src) {
+        dest[k] = v;
+    }
+}
 } // namespace util
 } // namespace backtradercpp
 

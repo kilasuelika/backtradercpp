@@ -107,6 +107,8 @@ void Cerebro::run() {
     }
     if (verbose_ == VerboseLevel::OnlySummary || verbose_ == VerboseLevel::AllInfo)
         broker_agg_.summary();
+    strategy_->finish_all();
+    // strategy_-
 }
 
 void Cerebro::reset() {
