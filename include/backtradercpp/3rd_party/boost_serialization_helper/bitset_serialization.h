@@ -1,4 +1,4 @@
-#ifndef SERIALIZATION_BITSET_H_
+﻿#ifndef SERIALIZATION_BITSET_H_
 #define SERIALIZATION_BITSET_H_
 
 #include <boost/serialization/serialization.hpp>

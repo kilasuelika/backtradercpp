@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include "../../include/backtradercpp/Cerebro.hpp"
 using namespace backtradercpp;
 using namespace std;

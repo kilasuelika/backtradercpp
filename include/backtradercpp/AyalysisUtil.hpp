@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <Eigen/Core>
 #include <algorithm>
 #include <numeric>
@@ -20,7 +20,7 @@ struct PerformanceMetric {
 // V is a column vector
 template <typename T> inline auto MDD(const Eigen::EigenBase<T> &_v) {
     const T &v(_v.derived());
-    // 取得具体类型
+    // ???瑚?蝐餃?
     typename T::PlainObject temp;
 
     return std::accumulate(
@@ -183,27 +183,27 @@ void backtradercpp::analysis::MetricAnalyzer::write_table(const std::string &fil
     f << "Metrics, All";
     if (performance_.size() > 1)
         for (int i = 0; i < performance_.size(); ++i)
-            f << std::format(",{}", i);
+            f << fmt::format(",{}", i);
     f << std::endl;
 
     f << "Yearly return(%)";
     for (const auto &m : performance_)
-        f << std::format(",{}", m.r * 100);
+        f << fmt::format(",{}", m.r * 100);
     f << std::endl;
 
     f << "Yearly growth(%)";
     for (const auto &m : performance_)
-        f << std::format(",{}", m.growth * 100);
+        f << fmt::format(",{}", m.growth * 100);
     f << std::endl;
 
     f << "MDD(%)";
     for (const auto &m : performance_)
-        f << std::format(",{}", m.mdd * 100);
+        f << fmt::format(",{}", m.mdd * 100);
     f << std::endl;
 
     f << "Sharepe Ratio";
     for (const auto &m : performance_)
-        f << std::format(",{}", m.sharepe);
+        f << fmt::format(",{}", m.sharepe);
     f << std::endl;
 }
 

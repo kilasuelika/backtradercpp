@@ -1,4 +1,4 @@
-#ifndef SERIALIZATION_ATOMIC_H_
+﻿#ifndef SERIALIZATION_ATOMIC_H_
 #define SERIALIZATION_ATOMIC_H_
 
 #include <boost/serialization/serialization.hpp>

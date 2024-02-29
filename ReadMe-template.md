@@ -1,4 +1,4 @@
-# backtradercpp -- A header-only C++ 20 back testing library
+﻿# backtradercpp -- A header-only C++ 20 back testing library
 
 As the name suggesting, this library is partially inspired by [backtrader](https://www.backtrader.com/) on Python. In my own use, backtrader constantly made me confusing so I decide to write my own library.
 
@@ -64,7 +64,7 @@ In this example, stock data are simulated from geometric brownian motion and sto
 
 ### Use dividen data
 
-In this example, dividen data for stocks are add through `StockBroker.set_xrd_dir(dir, columns)`. In the dir, dividen for each stock are stored in separated files. `columns` is a vector of length 5 to specify column indices (0 start) for `record date` (登记日), `execution date` (除权除息日), `bonus` (送股), `additional` (转增股) and `dividen` (分红). The unit is 10 stocks. For example, `bonus=5` means if you have 1000 stocks, then you will get extra `1000/10*5=500` stocks.
+In this example, dividen data for stocks are add through `StockBroker.set_xrd_dir(dir, columns)`. In the dir, dividen for each stock are stored in separated files. `columns` is a vector of length 5 to specify column indices (0 start) for `record date` (?餉扇??, `execution date` (?斗??斗??, `bonus` (?), `additional` (頧砍??? and `dividen` (?滯). The unit is 10 stocks. For example, `bonus=5` means if you have 1000 stocks, then you will get extra `1000/10*5=500` stocks.
 
 ```cpp
 ![[vs_examples/stock_xrd/stock_xrd.cpp]]

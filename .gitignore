@@ -1,4 +1,4 @@
-vs_examples/.vs
+﻿vs_examples/.vs
 vs_examples/x64
 
 vs_examples/basic_1/x64
@@ -23,3 +23,7 @@ vs_examples/optimize_strategy/log
 
 vs_examples/dump_data/x64
 vs_examples/dump_data/log
+
+.build/
+
+.vscode/

@@ -1,10 +1,11 @@
-#pragma once
+﻿#pragma once
 /*ZhouYao at 2022-09-10*/
 
 #include "Common.hpp"
 #include "DataFeeds.hpp"
 #include "AyalysisUtil.hpp"
 #include <list>
+#include <fmt/core.h>
 
 // #include "BaseBrokerImpl.hpp"
 
@@ -161,8 +162,8 @@ class StockBrokerImpl : public BaseBrokerImpl {
     using BaseBrokerImpl::BaseBrokerImpl;
 
     void process_trems() override;
-    // Columns: set column for record_date, execute_date, bonus（送）, addition（转增）,
-    // dividen（分红）
+    // Columns: set column for record_date, execute_date, bonus嚗?, addition嚗蓮憓?,
+    // dividen嚗?蝥ｇ?
     void set_xrd_dir(const std::string &dir, const std::vector<int> &columns,
                      std::function<std::string(const std::string &)> code_extract_func_ = nullptr);
 
@@ -756,15 +757,15 @@ inline void BrokerAggragator::summary() {
         util::cout("No data...\n");
     } else {
 
-        fmt::print("{: ^6} : {: ^21} —— {: ^21}, {: ^12} periods\n", "Time",
+        fmt::print("{: ^6} : {: ^21} ??{: ^21}, {: ^12} periods\n", "Time",
                    util::to_string(times_[0]), util::to_string(times_.back()), times_.size());
         double start_ = *(total_value_analyzer_.total_value_history().begin()),
                end_ = *(total_value_analyzer_.total_value_history().end() - 1), d = end_ - start_;
         if (d >= 0) {
-            fmt::print("{: ^6} : {: ^21.4f} —— {: ^21.4f}, {: ^12.2f} profit\n", "Wealth", start_,
+            fmt::print("{: ^6} : {: ^21.4f} ??{: ^21.4f}, {: ^12.2f} profit\n", "Wealth", start_,
                        end_, d);
         } else {
-            fmt::print("{: ^6} : {: ^21.4f} —— {: ^21.4f}, {: ^12.2f} loss\n", "Wealth", start_,
+            fmt::print("{: ^6} : {: ^21.4f} ??{: ^21.4f}, {: ^12.2f} loss\n", "Wealth", start_,
                        end_, d);
         }
 

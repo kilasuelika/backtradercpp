@@ -1,4 +1,4 @@
-#include "../../include/backtradercpp/Cerebro.hpp"
+﻿#include "../../include/backtradercpp/Cerebro.hpp"
 using namespace backtradercpp;
 
 struct SimpleStrategy : strategy::GenericStrategy {

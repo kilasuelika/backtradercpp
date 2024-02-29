@@ -47,7 +47,7 @@ class Cerebro {
     // strategy::FullAssetData data_;
     ptime start_{boost::posix_time::min_date_time}, end_{boost::posix_time::max_date_time};
 
-    VerboseLevel verbose_ = VerboseLevel::AllInfo;
+    VerboseLevel verbose_ = VerboseLevel::OnlySummary;
 };
 
 void Cerebro::add_broker(broker::BaseBroker broker, int window) {

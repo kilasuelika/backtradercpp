@@ -1,4 +1,4 @@
-#include "../../include/backtradercpp/Cerebro.hpp"
+﻿#include "../../include/backtradercpp/Cerebro.hpp"
 #include <boost/math/distributions.hpp>
 using namespace backtradercpp;
 
