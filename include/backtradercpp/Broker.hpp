@@ -520,10 +520,8 @@ void BaseBrokerImpl::update_info() {
 inline void BaseBrokerImpl::resize(int n) {}
 
 void BaseBrokerImpl::set_feed(feeds::BasePriceDataFeed data) {
-
     feed_ = data;
     analyzer_.set_name(data.name());
-
     resize(data.assets());
     current_ = data.data_ptr();
     codes_ = data.codes();
@@ -650,7 +648,6 @@ inline void BrokerAggragator::update_info() {
         auto broker = brokers_[i];
         const auto &data = broker.data_ptr();
         const auto &time = data->time;
-
         broker.update_info();
 
         total_values_.coeffRef(i) = broker.total_value();
@@ -659,10 +656,8 @@ inline void BrokerAggragator::update_info() {
         profits_[i] = broker.profits();
         adj_profits_[i] = broker.adj_profits();
     }
-
     wealth_ = total_values_.sum();
     total_value_analyzer_.update_total_value(wealth_);
-
     // Update time.
     ptime t = brokers_[0].time();
     for (int i = 1; i < brokers_.size(); ++i) {
@@ -671,12 +666,17 @@ inline void BrokerAggragator::update_info() {
         }
     }
     times_.emplace_back(std::move(t));
-
     _write_log();
 }
 
 void BrokerAggragator::_write_log() {
+    try{
     *wealth_file_ << std::format("{}, {}", util::to_string(times_.back()), wealth_);
+
+    }catch (const std::exception& e) {
+                std::cerr << "錯誤: - " << e.what() << '\n';
+
+            }
     for (int i = 0; i < brokers_.size(); ++i) {
         double cash = brokers_[i].cash();
         double holding_value = values_[i].sum();

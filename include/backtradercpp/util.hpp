@@ -8,8 +8,6 @@
 
 #include <format>
 #include <fmt/format.h>
-#include "custom_formatters.hpp"
-
 
 #define SPDLOG_FMT_EXTERNAL
 #include <spdlog/stopwatch.h>
@@ -43,13 +41,21 @@ template <typename T, typename T2> void reset_value(T &m, const T2 &v_) {
     }
 }
 
+// inline std::string to_string(const boost::posix_time::ptime &t) {
+//     // std::cout << t << std::endl;
+//     return fmt::format("{:04}-{:02}-{:02} {:02}-{:02}-{:02}", t.date().year(), t.date().month(),
+//                        t.date().day(), t.time_of_day().hours(), t.time_of_day().minutes(),
+//                        t.time_of_day().seconds());
+// }
 inline std::string to_string(const boost::posix_time::ptime &t) {
-    // std::cout << t << std::endl;
-    return std::format("{:04}-{:02}-{:02} {:02}-{:02}-{:02}", t.date().year(), t.date().month(),
-                       t.date().day(), t.time_of_day().hours(), t.time_of_day().minutes(),
-                       t.time_of_day().seconds());
+    return fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+                       static_cast<int>(t.date().year()), 
+                       static_cast<int>(t.date().month()), 
+                       static_cast<int>(t.date().day()), 
+                       static_cast<int>(t.time_of_day().hours()), 
+                       static_cast<int>(t.time_of_day().minutes()), 
+                       static_cast<int>(t.time_of_day().seconds()));
 }
-
 inline double sw_to_seconds(const spdlog::stopwatch &sw) {
 
     return static_cast<double>(
@@ -57,8 +63,8 @@ inline double sw_to_seconds(const spdlog::stopwatch &sw) {
            1000;
 }
 
-template <typename... T> void cout(std::format_string<T...> fmt, T &&...args) {
-    std::cout << std::format(fmt, args...);
+template <typename... T> void cout(fmt::format_string<T...> fmt, T &&...args) {
+    std::cout << fmt::format(fmt, args...);
 }
 
 template <typename T> std::string format_map(const T &m) {
@@ -114,3 +120,6 @@ template <> struct hash<boost::posix_time::ptime> {
 };
 
 } // namespace std
+
+
+

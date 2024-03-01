@@ -77,37 +77,47 @@ void Cerebro::run() {
     if (verbose_ == VerboseLevel::AllInfo)
         fmt::print(fmt::fg(fmt::color::yellow), "Runnng strategy..\n");
     init_strategy();
-
     while (!price_feeds_agg_.finished()) {
         spdlog::stopwatch sw;
-
         if ((!price_feeds_agg_.read()) || (price_feeds_agg_.time() > end_))
             break;
         common_feeds_agg_.read();
         if (price_feeds_agg_.time() >= start_) {
             if (verbose_ == VerboseLevel::AllInfo)
+                try {
+
                 fmt::print(fmt::runtime("┌{0:─^{2}}┐\n"
                                         "│{1: ^{2}}│\n"
                                         "└{0:─^{2}}┘\n"),
                            "", util::to_string(price_feeds_agg_.time()), 21);
+                
+            } catch (const std::exception& e) {
+                std::cerr << "錯誤: - " << e.what() << '\n';
 
+            }
+                
             // fmt::print("{}\n", util::to_string(feeds_agg_.time()));
+            
             broker_agg_.process_old_orders();
             auto order_pool = strategy_->execute();
             broker_agg_.process(order_pool);
             broker_agg_.process_terms();
             broker_agg_.update_info();
+            
 
             if (verbose_ == VerboseLevel::AllInfo) {
                 fmt::print("cash: {:12.4f},  total_wealth: {:12.2f}\n", broker_agg_.total_cash(),
                            broker_agg_.total_wealth());
                 fmt::print("Using {} seconds.\n", util::sw_to_seconds(sw));
             }
+            fmt::print("The test number is: {:d}\n", 409);
         }
     }
     if (verbose_ == VerboseLevel::OnlySummary || verbose_ == VerboseLevel::AllInfo)
         broker_agg_.summary();
+    fmt::print("The test number is: {:d}\n", 410);
     strategy_->finish_all();
+    fmt::print("The test number is: {:d}\n", 411);
     // strategy_-
 }
 

@@ -12,6 +12,7 @@
 #include <numeric>
 #include <filesystem>
 #include <unordered_set>
+#include <fmt/core.h>
 // #include "3rd_party/glob/glob.hpp"
 // #include <ranges>
 
@@ -651,10 +652,15 @@ inline void CSVDirDataImpl::init() {
         } else {
             raw_files.emplace_back(entry.path());
             adj_files.emplace_back(adj_file_path);
-
-            raw_data_filenames.emplace_back(entry.path().string());
+            try {
+                raw_data_filenames.emplace_back(entry.path().string());
+                
+            } catch (const std::exception& e) {
+                std::cerr << "錯誤:在處理文件路徑時出現問題 - " << e.what() << '\n';
+                std::cerr << "原始數據文件路徑: " << entry.path().string() << '\n';
+                std::cerr << "調整後數據文件路徑: " << adj_file_path.string() << '\n';
+            }
             adj_data_filenames.emplace_back(adj_file_path.string());
-
             ++assets_;
             codes_.emplace_back(file_path.string());
         }
@@ -702,6 +708,7 @@ BK_CSVDirectoryDataImpl_extra_col(num, UNWRAP(VecArrXd::Zero(assets_)));
 BK_CSVDirectoryDataImpl_extra_col(str, UNWRAP(std::vector<std::string>(assets_)));
 #undef BK_CSVDirectoryDataImpl_extra_col
 #undef UNWRAP
+
 
 bool CSVDirDataImpl::read() {
 

@@ -300,7 +300,15 @@ class GenericStrategy {
     }
 
     virtual void finish(){};
-    void finish_all() { dump_.save(); }
+    void finish_all() { 
+        try{
+        dump_.save(); 
+        }catch (const std::exception& e) {
+                    std::cerr << "錯誤: - " << e.what() << '\n';
+
+                }
+        
+        }
 
     virtual ~GenericStrategy() = default;
 
