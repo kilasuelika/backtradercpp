@@ -91,6 +91,7 @@ class BaseBrokerImpl {
 
     void resize(int n);
     void set_feed(feeds::BasePriceDataFeed data);
+    void set_df_feed(feeds::BasePriceDataFrameFeed data);
     auto feed() { return feed_; }
 
     void set_data_ptr(PriceFeedData *data) { current_ = data; }
@@ -119,7 +120,7 @@ class BaseBrokerImpl {
     friend struct BaseBroker;
 
     feeds::BasePriceDataFeed feed_;
-
+    feeds::BasePriceDataFrameFeed df_feed_;
     std::shared_ptr<GenericCommission> commission_;
     std::shared_ptr<GenericTax> tax_;
     PriceFeedData *current_;
@@ -239,6 +240,11 @@ class BaseBroker {
         sp->set_feed(data);
         return *this;
     }
+
+    virtual BaseBroker &set_df_feed(feeds::BasePriceDataFrameFeed data) {
+        sp->set_df_feed(data);
+        return *this;
+    }
     auto feed() const { return sp->feed(); }
 
     void set_data_ptr(PriceFeedData *data) { sp->set_data_ptr(data); }
@@ -291,6 +297,11 @@ class StockBroker : public BaseBroker {
 
     StockBroker &set_feed(feeds::BasePriceDataFeed data) {
         BaseBroker::set_feed(data);
+        return *this;
+    }
+
+        StockBroker &set_df_feed(feeds::BasePriceDataFrameFeed data) {
+        BaseBroker::set_df_feed(data);
         return *this;
     }
 
@@ -527,6 +538,15 @@ void BaseBrokerImpl::set_feed(feeds::BasePriceDataFeed data) {
     codes_ = data.codes();
 }
 
+void BaseBrokerImpl::set_df_feed(feeds::BasePriceDataFrameFeed data) {
+    df_feed_ = data;
+    analyzer_.set_name(data.name());
+    resize(data.assets());
+    current_ = data.data_ptr();
+    codes_ = data.codes();
+}
+
+
 inline void BaseBrokerImpl::add_order(const Order &order) { unprocessed.emplace_back(order); }
 
 void StockBrokerImpl::process_trems() {
@@ -733,6 +753,12 @@ inline void BrokerAggragator::add_broker(const BaseBroker &broker) {
 inline void BrokerAggragator::sync_feed_agg(const feeds::PriceFeedAggragator &feed_agg_) {
     for (int i = 0; i < brokers_.size(); ++i) {
         brokers_[i].set_feed(feed_agg_.feed(i));
+    }
+}
+
+inline void BrokerAggragator::sync_feed_agg(const feeds::PriceFeedAggragator &feed_agg_) {
+    for (int i = 0; i < brokers_.size(); ++i) {
+        brokers_[i].set_df_feed(feed_agg_.feed(i));
     }
 }
 

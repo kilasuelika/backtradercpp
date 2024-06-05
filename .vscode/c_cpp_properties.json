@@ -4,7 +4,12 @@
             "name": "Win32",
             "includePath": [
                 "${default}",
-                "D:\\code\\vcpkg\\installed\\x64-windows\\include"
+                "D:\\code\\vcpkg\\installed\\x64-windows\\include",
+                "D:\\code\\vcpkg\\installed\\x64-windows\\include\\DataFrame\\include\\DataFrame",
+                "D:/code/vcpkg/installed/x64-windows/include/DataFrame/include",
+                "D:\\code\\vcpkg\\installed\\x64-windows\\include\\python3.11",
+                "C:\\Users\\scott\\AppData\\Local\\Programs\\Python\\Python39\\Lib\\site-packages\\numpy\\core\\include\\numpy",
+                "C:/Users/scott/AppData/Local/Programs/Python/Python39/Lib/site-packages/numpy/core/include",
             ],
             "defines": [
                 "_DEBUG",

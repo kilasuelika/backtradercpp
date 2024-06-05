@@ -77,6 +77,13 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "openglsupport": "cpp",
+        "*.ipp": "cpp",
+        "regex": "cpp",
+        "cfenv": "cpp",
+        "hash_map": "cpp",
+        "future": "cpp",
+        "stdfloat": "cpp"
     }
 }

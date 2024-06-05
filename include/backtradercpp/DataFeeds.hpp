@@ -13,6 +13,9 @@
 #include <filesystem>
 #include <unordered_set>
 #include <fmt/core.h>
+#include <DataFrame/DataFrame.h>
+#include <DataFrame/DataFrameStatsVisitors.h>
+#include <DataFrame/RandGen.h>
 // #include "3rd_party/glob/glob.hpp"
 // #include <ranges>
 
@@ -22,10 +25,11 @@ namespace feeds {
 // this case, OHLC are the same value and valume are implicitly very large. time_converter: convert
 // a time string to standard format: 2020-01-01 01:00:00
 
+// 這個結構定義了兩個靜態函數，用於將日期字符串從一種格式轉換為另一種格式。
 struct TimeStrConv {
     using func_type = std::function<std::string(const std::string &)>;
 
-    //"20100202"
+    // non_delimited_date函數將無分隔符的日期字符串（如"20100202"）轉換為有分隔符的日期字符串（如"2010-02-02 00:00:00"）
     static std::string non_delimited_date(const std::string &date_str) {
         std::string res_date = "0000-00-00 00:00:00";
         res_date.replace(0, 4, std::string_view{date_str.data(), 4});
@@ -33,6 +37,7 @@ struct TimeStrConv {
         res_date.replace(8, 2, std::string_view{date_str.data() + 6, 2});
         return res_date;
     }
+    // delimited_date函數做相同的事情，但是它假定輸入的日期字符串已經有分隔符。
     static std::string delimited_date(const std::string &date_str) {
         std::string res_date = "0000-00-00 00:00:00";
         res_date.replace(0, 4, std::string_view{date_str.data(), 4});
@@ -42,8 +47,10 @@ struct TimeStrConv {
     }
 };
 
+// 這是一個前向聲明，表示存在一個模板類別GenericFeedsAggragator，它接受三個模板參數。該類別的定義並未在這段程式碼中給出。
 template <typename DataT, typename FeedT, typename BufferT> class GenericFeedsAggragator;
 
+// 這是一個枚舉類型，用於表示某種狀態，可能的值為Valid、Invalid和Finished。
 enum State { Valid, Invalid, Finished };
 
 template <typename T> class GenericDataImpl {
@@ -869,6 +876,109 @@ void CSVCommonDataImpl::init() { // Read header
         col_names_.emplace_back(std::move(row_string[i]));
     }
 }
+
+using namespace hmdf;
+// A DataFrame with ulong index type
+//
+// using ULDataFrame = StdDataFrame<unsigned long>;
+
+// // A DataFrame with string index type
+// //
+// using StrDataFrame = StdDataFrame<std::string>;
+
+// // A DataFrame with DateTime index type
+// //
+// using DTDataFrame = StdDataFrame<DateTime>;
+
+
+class DataFrameTabDataImpl {
+public:
+    DataFrameTabDataImpl(const ULDataFrame &df) : df_(df) {}
+
+    bool read() {
+        // Implement logic to read from DataFrame here.
+        // This will depend on the structure of your DataFrame and what data you want to extract.
+        if (!df_.empty()) {
+            // Perform data extraction logic
+            return true;
+        }
+        return false;
+    }
+
+    PriceFeedData *data_ptr() const {
+        // Implement logic to return a pointer to the data
+    }
+
+    int assets() const {
+        // Implement logic to return the number of assets
+        return assets_;
+    }
+
+    const auto &codes() const {
+        // Implement logic to return codes
+        return codes_;
+    }
+
+    const std::string &name() const {
+        return name_;
+    }
+
+    void set_name(const std::string &name) {
+        name_ = name;
+    }
+
+    const ULDataFrame& get_df() const {
+        return df_;
+    }
+protected:
+    int assets_ = 0;
+    std::vector<std::string> codes_;
+private:
+    ULDataFrame df_;
+    std::string name_;
+};
+
+struct BasePriceDataFrameFeed {
+public:
+    virtual BasePriceDataFrameFeed &set_name(const std::string &name) {
+        sp->set_name(name);
+        return *this;
+    }
+
+    virtual ~BasePriceDataFrameFeed() = default;
+
+    // 添加与 BasePriceDataFeed 类似的方法
+    PriceFeedData *data_ptr() const { return sp->data_ptr(); }
+    int assets() const { return sp->assets(); }
+    const auto &codes() const { return sp->codes(); }
+    const auto &name() const { return sp->name(); }
+
+protected:
+    std::shared_ptr<DataFrameTabDataImpl> sp;
+};
+
+
+struct DataFrameTabPriceData : BasePriceDataFrameFeed {
+    DataFrameTabPriceData(const ULDataFrame &df)
+        : BasePriceDataFrameFeed() {
+        sp = std::make_shared<DataFrameTabDataImpl>(df);
+    }
+
+    bool read() { return sp->read(); }
+
+    DataFrameTabPriceData &set_name(const std::string &name) {
+        BasePriceDataFrameFeed::set_name(name);
+        return *this;
+    }
+
+    std::unique_ptr<BasePriceDataFrameFeed> clone() const {
+    // 创建一个新的 DataFrameTabPriceData 对象并传递 ULDataFrame
+    return std::make_unique<DataFrameTabPriceData>(sp->get_df());
+    }
+};
+
+
+
 
 } // namespace feeds
 } // namespace backtradercpp
