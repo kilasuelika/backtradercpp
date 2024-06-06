@@ -1,0 +1,3 @@
+D:/code/backtradercpp/CMakeFiles/backtradercpp.dir
+D:/code/backtradercpp/CMakeFiles/ALL_BUILD.dir
+D:/code/backtradercpp/CMakeFiles/ZERO_CHECK.dir

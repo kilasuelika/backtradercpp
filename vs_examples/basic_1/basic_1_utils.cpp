@@ -1,18 +1,13 @@
-﻿#include <iostream>
-#include "../../include/backtradercpp/Cerebro.hpp"
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include "../../include/backtradercpp/DataFeeds.hpp" // 包含 ULDataFrame 的头文件
-#include "DataFrame/DataFrame.h"
-#include <range/v3/all.hpp>
+#include "../../include/backtradercpp/Cerebro.hpp"
+// #include "basic_1_main.cpp"
+#include <DataFrame/DataFrame.h>
 
-using namespace backtradercpp;
-using namespace std;
+#include "utils.h"
+
 using namespace hmdf;
-using ULDataFrame = StdDataFrame<unsigned long>;
-
-#define import_array() {if (_import_array() < 0) {PyErr_Print(); PyErr_SetString(PyExc_ImportError, "numpy.core.multiarray failed to import"); return ; } }
-
+using namespace backtradercpp;
 
 struct SimpleStrategy : strategy::GenericStrategy {
     void run() override {
@@ -27,19 +22,6 @@ struct SimpleStrategy : strategy::GenericStrategy {
         }
     }
 };
-int main() {
-    Cerebro cerebro;
-    // non_delimit_date is a function that convert date string like "20200101" to standard format.
-    //  0.0005 and 0.001 are commission rate for long and short trading.
-    cerebro.add_broker(
-        broker::BaseBroker(0.0005, 0.001)
-            .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
-                                             feeds::TimeStrConv::non_delimited_date)));
-    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
-    cerebro.run();
-}
-
-
 
 ULDataFrame convert_to_ULDataFrame(PyObject* numpy_array) {
     if (!PyArray_Check(numpy_array)) {
@@ -67,11 +49,14 @@ ULDataFrame convert_to_ULDataFrame(PyObject* numpy_array) {
             column_data[i] = *reinterpret_cast<double*>(PyArray_GETPTR2(array, i, j));
         }
         std::string column_name = "Column_" + std::to_string(j);
-        df.load_column<double>(column_name.c_str(), column_data, nan_policy::dont_pad_with_nans);
+        df.load_column<double>(column_name.c_str(), column_data);
     }
 
     return df;
 }
+// 定义一个返回 void 的 import_array 宏
+#undef import_array
+#define import_array() {if (_import_array() < 0) {PyErr_Print(); PyErr_SetString(PyExc_ImportError, "numpy.core.multiarray failed to import"); return; } }
 
 extern "C" {
     __declspec(dllexport) void runBacktrader(PyObject* numpy_array) {
