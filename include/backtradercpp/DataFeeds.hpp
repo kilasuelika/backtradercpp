@@ -336,11 +336,15 @@ struct CSVTabPriceData : BasePriceDataFeed {
 struct CSVDirPriceData : BasePriceDataFeed {
     std::shared_ptr<CSVDirDataImpl> sp;
 
+    // 初始化 sp，使用原始数据目录和其他参数创建 CSVDirDataImpl 实例。
+    // 调用 set_base_sp() 方法，将 BasePriceDataFeed 的 sp 成员设置为当前类的 sp。
     CSVDirPriceData(const std::string &raw_data_dir, std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
                     TimeStrConv::func_type time_converter = nullptr)
         : sp(std::make_shared<CSVDirDataImpl>(raw_data_dir, tohlc_map, time_converter)) {
         set_base_sp();
     }
+    // 初始化 sp，使用原始数据目录、调整数据目录和其他参数创建 CSVDirDataImpl 实例。
+    // 调用 set_base_sp() 方法，将 BasePriceDataFeed 的 sp 成员设置为当前类的 sp。
     CSVDirPriceData(const std::string &raw_data_dir, const std::string &adj_data_dir,
                     std::array<int, 5> tohlc_map = {0, 1, 2, 3, 4},
                     TimeStrConv::func_type time_converter = nullptr)
@@ -349,29 +353,37 @@ struct CSVDirPriceData : BasePriceDataFeed {
         set_base_sp();
     }
 
+    // 功能：调用 sp 的 read() 方法读取数据。
     bool read() { return sp->read(); }
 
+    // 功能：设置额外的数值列，返回当前对象的引用。
     CSVDirPriceData &extra_num_col(const std::vector<std::pair<int, std::string>> &cols) {
         sp->extra_num_col(cols);
         return *this;
     }
 
+    // 功能：设置额外的字符串列，返回当前对象的引用。
     CSVDirPriceData &extra_str_col(const std::vector<std::pair<int, std::string>> &cols) {
         sp->extra_str_col(cols);
         return *this;
     }
 
+    // 功能：设置代码提取器，返回当前对象的引用。
     CSVDirPriceData &set_code_extractor(std::function<std::string(std::string)> fun) {
         sp->code_extractor(fun);
         return *this;
     }
 
+    // 功能：设置数据对象的名称，返回当前对象的引用。
     CSVDirPriceData &set_name(const std::string &name) {
         BasePriceDataFeed::set_name(name);
         return *this;
     }
 
+    // 功能：将 BasePriceDataFeed 的 sp 成员设置为当前类的 sp。
     void set_base_sp() { BasePriceDataFeed::sp = sp; }
+
+    // 功能：克隆当前对象，返回一个新的 BasePriceDataFeed 实例。
     BasePriceDataFeed clone() { return BasePriceDataFeed(); }
 };
 
@@ -880,7 +892,7 @@ void CSVCommonDataImpl::init() { // Read header
 using namespace hmdf;
 // A DataFrame with ulong index type
 //
-// using ULDataFrame = StdDataFrame<unsigned long>;
+using ULDataFrame = StdDataFrame<unsigned long>;
 
 // // A DataFrame with string index type
 // //
@@ -891,89 +903,127 @@ using namespace hmdf;
 // using DTDataFrame = StdDataFrame<DateTime>;
 
 
-class DataFrameTabDataImpl {
+
+
+// class BasePriceDataImpl {
+// public:
+//     virtual void set_name(const std::string& name) = 0;
+//     virtual PriceFeedData* data_ptr() const = 0;
+//     virtual int assets() const = 0;
+//     virtual const std::vector<std::string>& codes() const = 0;
+//     virtual std::shared_ptr<BasePriceDataImpl> clone() const = 0;
+// };
+
+class DataFrameDataImpl : public BasePriceDataImpl {
 public:
-    DataFrameTabDataImpl(const ULDataFrame &df) : df_(df) {}
+    explicit DataFrameDataImpl(const ULDataFrame& df) : df_(df) {}
 
     bool read() {
-        // Implement logic to read from DataFrame here.
-        // This will depend on the structure of your DataFrame and what data you want to extract.
-        if (!df_.empty()) {
-            // Perform data extraction logic
-            return true;
-        }
-        return false;
+        // 实现读取 DataFrame 的逻辑
+        return !df_.empty();
     }
 
-    PriceFeedData *data_ptr() const {
-        // Implement logic to return a pointer to the data
+    void extra_num_col(const std::vector<std::pair<int, std::string>>& cols) {
+        // 实现处理额外数值列的逻辑
     }
 
-    int assets() const {
-        // Implement logic to return the number of assets
-        return assets_;
+    void extra_str_col(const std::vector<std::pair<int, std::string>>& cols) {
+        // 实现处理额外字符串列的逻辑
     }
 
-    const auto &codes() const {
-        // Implement logic to return codes
-        return codes_;
+    void code_extractor(std::function<std::string(std::string)> fun) {
+        // 实现代码提取器的逻辑
     }
 
-    const std::string &name() const {
+    PriceFeedData* data_ptr() {
+        return &price_feed_data_;
+    }
+
+    // void set_name(const std::string& name) override {
+    //     name_ = name;
+    // }
+
+    // int assets() const override {
+    //     return price_feed_data_.data.open.size();
+    // }
+
+    // const std::vector<std::string>& codes() const override {
+    //     // 返回资产代码，这里是一个占位符
+    //     static std::vector<std::string> dummy_codes = {"AAPL", "GOOGL", "MSFT"};
+    //     return dummy_codes;
+    // }
+
+    const std::string& name() {
         return name_;
-    }
-
-    void set_name(const std::string &name) {
-        name_ = name;
     }
 
     const ULDataFrame& get_df() const {
         return df_;
     }
-protected:
-    int assets_ = 0;
-    std::vector<std::string> codes_;
+
 private:
     ULDataFrame df_;
+    PriceFeedData price_feed_data_;
     std::string name_;
 };
 
-struct BasePriceDataFrameFeed {
-public:
-    virtual BasePriceDataFrameFeed &set_name(const std::string &name) {
+struct BasePriceDataFrameFeed :BasePriceDataFeed{
+    BasePriceDataFrameFeed() = default;
+    explicit BasePriceDataFrameFeed(std::shared_ptr<BasePriceDataImpl> sp) : sp(std::move(sp)) {}
+
+    std::shared_ptr<BasePriceDataImpl> sp = nullptr;
+
+    virtual BasePriceDataFrameFeed& set_name(const std::string& name) {
         sp->set_name(name);
         return *this;
     }
 
     virtual ~BasePriceDataFrameFeed() = default;
 
-    // 添加与 BasePriceDataFeed 类似的方法
-    PriceFeedData *data_ptr() const { return sp->data_ptr(); }
+    PriceFeedData* data_ptr() const { return sp->data_ptr(); }
     int assets() const { return sp->assets(); }
-    const auto &codes() const { return sp->codes(); }
-    const auto &name() const { return sp->name(); }
+    const auto& codes() const { return sp->codes(); }
+    const auto& name() const { return sp->name(); }
 
-protected:
-    std::shared_ptr<DataFrameTabDataImpl> sp;
+    virtual BasePriceDataFeed clone() { return BasePriceDataFrameFeed(sp->clone()); }
 };
 
+struct DataFramePriceData : BasePriceDataFrameFeed {
+    std::shared_ptr<DataFrameDataImpl> sp;
 
-struct DataFrameTabPriceData : BasePriceDataFrameFeed {
-    DataFrameTabPriceData(const ULDataFrame &df)
-        : BasePriceDataFrameFeed() {
-        sp = std::make_shared<DataFrameTabDataImpl>(df);
+    DataFramePriceData(const ULDataFrame& df)
+        : BasePriceDataFrameFeed(), sp(std::make_shared<DataFrameDataImpl>(df)) {
+        set_base_sp();
     }
 
     bool read() { return sp->read(); }
 
-    DataFrameTabPriceData &set_name(const std::string &name) {
+    DataFramePriceData& extra_num_col(const std::vector<std::pair<int, std::string>>& cols) {
+        sp->extra_num_col(cols);
+        return *this;
+    }
+
+    DataFramePriceData& extra_str_col(const std::vector<std::pair<int, std::string>>& cols) {
+        sp->extra_str_col(cols);
+        return *this;
+    }
+
+    DataFramePriceData& set_code_extractor(std::function<std::string(std::string)> fun) {
+        sp->code_extractor(fun);
+        return *this;
+    }
+
+    DataFramePriceData& set_name(const std::string& name) {
         BasePriceDataFrameFeed::set_name(name);
         return *this;
     }
 
+    void set_base_sp() {
+        BasePriceDataFrameFeed::sp = std::static_pointer_cast<BasePriceDataImpl>(sp);
+    }
+
     std::unique_ptr<BasePriceDataFrameFeed> clone() const {
-    // 创建一个新的 DataFrameTabPriceData 对象并传递 ULDataFrame
-    return std::make_unique<DataFrameTabPriceData>(sp->get_df());
+        return std::make_unique<DataFramePriceData>(sp->get_df());
     }
 };
 

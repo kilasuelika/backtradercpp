@@ -24,10 +24,18 @@ find_package(Boost 1.85.0 REQUIRED COMPONENTS system filesystem serialization)
 # 查找并链接 libfort 库（确保您的 vcpkg 已安装 libfort）
 find_package(libfort CONFIG REQUIRED)
 
+# 包含 range-v3 库的头文件路径
+find_package(range-v3 CONFIG REQUIRED)
+
+include_directories(${DataFrame_INCLUDE_DIRS})
+include_directories("D:\\code\\vcpkg\\packages\\dataframe_x64-windows\\include")
+find_package(DataFrame REQUIRED)
 # 创建共享库
 add_library(backtradercpp SHARED vs_examples/basic_1/basic_1.cpp)
 
 # 链接您的库与 fmt, Boost, 和 libfort
+target_link_libraries(backtradercpp PRIVATE range-v3)
+target_link_libraries(backtradercpp ${DataFrame_LIBRARIES})
 target_link_libraries(backtradercpp PRIVATE fmt::fmt Boost::filesystem Boost::system Boost::serialization libfort::fort)
 
 # 包含 Python 头文件路径

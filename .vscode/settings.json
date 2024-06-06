@@ -84,6 +84,7 @@
         "cfenv": "cpp",
         "hash_map": "cpp",
         "future": "cpp",
-        "stdfloat": "cpp"
+        "stdfloat": "cpp",
+        "mprealsupport": "cpp"
     }
 }
