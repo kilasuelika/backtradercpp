@@ -85,6 +85,9 @@
         "hash_map": "cpp",
         "future": "cpp",
         "stdfloat": "cpp",
-        "mprealsupport": "cpp"
+        "mprealsupport": "cpp",
+        "nonlinearoptimization": "cpp",
+        "forward_list": "cpp",
+        "valarray": "cpp"
     }
 }

@@ -6,10 +6,11 @@
                 "${default}",
                 "D:\\code\\vcpkg\\installed\\x64-windows\\include",
                 "D:\\code\\vcpkg\\installed\\x64-windows\\include\\python3.11",
-                "C:\\Users\\scott\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\numpy",
-                "C:\\Users\\scott\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\numpy\\core\\include",
+                "C:\\Users\\scott\\AppData\\Local\\Programs\\Python\\Python39\\Lib\\site-packages\\numpy",
+                "C:\\Users\\scott\\AppData\\Local\\Programs\\Python\\Python39\\Lib\\site-packages\\numpy\\core\\include",
                 "D:\\code\\vcpkg\\packages\\dataframe_x64-windows\\include",
-                "D:\\code\\vcpkg\\packages\\range-v3_x64-windows\\include"
+                "D:\\code\\vcpkg\\packages\\range-v3_x64-windows\\include",
+                "D:\\code\\vcpkg\\packages\\pybind11_x64-windows\\include"
             ],
             "defines": [
                 "_DEBUG",
