@@ -18,6 +18,7 @@
 #include <DataFrame/RandGen.h>
 // #include "3rd_party/glob/glob.hpp"
 // #include <ranges>
+namespace py = pybind11;
 
 namespace backtradercpp {
 namespace feeds {
@@ -84,27 +85,28 @@ template <typename T> class GenericDataImpl {
     std::string name_;
 };
 
-class BasePriceDataImpl : public GenericDataImpl<PriceFeedData> {
 
-  public:
+class BasePriceDataImpl : public GenericDataImpl<PriceFeedData> {
+public:
     BasePriceDataImpl() = default;
     explicit BasePriceDataImpl(TimeStrConv::func_type time_converter)
-        : GenericDataImpl(time_converter){};
+        : GenericDataImpl(time_converter) {}
 
-    int assets() const { return assets_; }
-    const auto &codes() const { return codes_; }
+    virtual ~BasePriceDataImpl() = default;
 
-    // void reset() override{}
     virtual std::shared_ptr<BasePriceDataImpl> clone();
 
-  protected:
+    int assets() const { return assets_; }
+    virtual const std::vector<std::string>& codes() const { return codes_; }
+
+protected:
     friend class FeedsAggragator;
 
     virtual void init() { print(fg(fmt::color::yellow), "Total {} assets.\n", assets_); }
-
     int assets_ = 0;
     std::vector<std::string> codes_;
 };
+
 
 struct CSVRowParaser {
     inline static boost::escaped_list_separator<char> esc_list_sep{"", ",", "\"\'"};
@@ -204,6 +206,196 @@ class CSVDirDataImpl : public BasePriceDataImpl {
     std::vector<State> status; // Track if data in each file has been readed.
 };
 
+class PriceDataImpl : public BasePriceDataImpl {
+public:
+    PriceDataImpl(py::array_t<double> ohlc_data, 
+                  const std::vector<std::string>& date_vector, 
+                  const std::vector<std::string>& stock_name_vector, 
+                  const std::vector<std::string>& stock_vector,
+                  TimeStrConv::func_type time_converter = nullptr)
+        : ohlc_data_(ohlc_data), 
+      date_vector_(date_vector), 
+      stock_name_vector_(stock_name_vector), 
+      stock_vector_(stock_vector) {
+        // 确保 time_converter_ 初始化
+        if (time_converter) {
+            time_converter_ = time_converter;
+        } else {
+            // 提供默认的时间转换器
+            time_converter_ = &TimeStrConv::delimited_date;
+        }
+        init();
+        index = 0;
+      }
+
+    bool read() override;
+    void reset() override;
+
+    std::shared_ptr<BasePriceDataImpl> clone() override;
+
+    void cast_ohlc_data_(std::vector<std::string> &row_string, OHLCData &dest);
+
+    const std::vector<std::string>& codes() const override { return BasePriceDataImpl::codes(); }
+
+private:
+    void init() override;
+
+    py::array_t<double> ohlc_data_;
+    std::vector<std::string> date_vector_;
+    std::vector<std::string> stock_name_vector_;
+    std::vector<std::string> stock_vector_;
+    std::vector<std::vector<std::string>> combined_data_;
+    int index;
+    size_t assets_;
+    TimeStrConv::func_type time_converter_;
+};
+
+
+inline bool PriceDataImpl::read() {
+    // 假设在读取数据后需要一些额外处理或验证
+    std::cout << "Reading PriceDataImpl" << std::endl;
+    std::cout << "combined_data_.size: " << combined_data_.size() << std::endl;
+    std::cout << "combined_data_[0].size: " << combined_data_[0].size() << std::endl;
+
+    try
+    {
+    if (index >= combined_data_.size()) {
+            finished_ = true;
+            return false;
+        }
+
+    std::cout << "test a" << std::endl;
+    std::cout << " index : " << index << std::endl;
+    auto row_string = combined_data_[index];
+    std::cout << "row_string[2] : " << row_string[2] << std::endl;
+    next_.time = boost::posix_time::time_from_string(time_converter_(row_string[2]));
+    // std::cout << "test c" << std::endl;
+    cast_ohlc_data_(row_string, next_.data);
+    std::cout << "test d" << std::endl;
+
+    // Set volume to very large.
+    std::cout << "test e" << std::endl;
+    next_.volume.setConstant(1e12);
+    std::cout << "test f" << std::endl;
+    next_.validate_assets();
+    std::cout << "test g" << std::endl;
+
+    ++index;
+
+    return true;    
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+}
+
+inline void PriceDataImpl::reset() {
+    ohlc_data_ = py::array_t<double>();
+    date_vector_.clear();
+    stock_name_vector_.clear();
+    stock_vector_.clear();
+    init();
+}
+
+inline void PriceDataImpl::cast_ohlc_data_(std::vector<std::string> &row_string, OHLCData &dest) {
+    if (row_string.size() < 5) {  // 确保 row_string 至少有5个元素
+        throw std::invalid_argument("Expected row_string to have at least 5 elements.");
+    }
+    
+    try {
+        // 修剪并解析开盘价
+        boost::algorithm::trim(row_string[3]);
+        dest.open.coeffRef(0) = boost::lexical_cast<double>(row_string[3]);
+        std::cout << "today open: " << row_string[3] << std::endl;
+
+        // 修剪并解析最高价
+        boost::algorithm::trim(row_string[4]);
+        dest.close.coeffRef(0) = boost::lexical_cast<double>(row_string[4]);
+        std::cout << "today close: " << row_string[4] << std::endl;
+
+
+        // 修剪并解析最低价
+        boost::algorithm::trim(row_string[5]);
+        dest.high.coeffRef(0) = boost::lexical_cast<double>(row_string[5]);
+        std::cout << "today high: " << row_string[5] << std::endl;
+
+        // 修剪并解析收盘价
+        boost::algorithm::trim(row_string[6]);
+        dest.low.coeffRef(0) = boost::lexical_cast<double>(row_string[6]);
+        std::cout << "today low: " << row_string[6] << std::endl;
+
+    } catch (const boost::bad_lexical_cast &e) {
+        util::cout("Bad cast: {}\n", e.what());
+    } catch (const std::exception &e) {
+        util::cout("Error: {}\n", e.what());
+    }
+}
+std::shared_ptr<BasePriceDataImpl> PriceDataImpl::clone() {
+    return std::make_shared<PriceDataImpl>(*this);
+}
+
+void PriceDataImpl::init() {
+    std::cout << "Initializing PriceDataImpl" << std::endl;
+
+    auto buf = ohlc_data_.request();
+    if (buf.ndim != 2) {
+        throw std::invalid_argument("Expected a 2-dimensional NumPy array");
+    }
+
+    size_t rows = buf.shape[0];
+    size_t cols = buf.shape[1];
+
+    // Ensure the sizes match
+    if (stock_vector_.size() != rows || stock_name_vector_.size() != rows || date_vector_.size() != rows) {
+        throw std::invalid_argument("The size of date_vector, stock_name_vector, and stock_vector must match the number of rows in numpy_array.");
+    }
+
+    assets_ = cols;
+
+    std::cout << "assets_ count is " << std::to_string(assets_) << std::endl;
+
+    // Initialize the codes and data structures
+    codes_.resize(rows);
+    for (size_t i = 0; i < rows; ++i) {
+        codes_[i] = stock_vector_[i];
+    }
+
+    // Initialize combined_data_ with additional columns for date, stock name, and stock
+    combined_data_.resize(rows, std::vector<std::string>(cols + 3));
+    next_.resize(rows);
+    auto ptr = static_cast<double*>(buf.ptr);
+
+    // // 打印 ptr 的内容以验证数据
+    // std::cout << "OHLC Data (Row-Major Order):" << std::endl;
+    // for (size_t i = 0; i < rows; ++i) {
+    //     for (size_t j = 0; j < cols; ++j) {
+    //         std::cout << ptr[i * cols + j] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
+    for (size_t i = 0; i < rows; ++i) {
+        // Add date, stock name, and stock to the combined_data_
+        combined_data_[i][0] = stock_vector_[i];
+        combined_data_[i][1] = stock_name_vector_[i];
+        combined_data_[i][2] = date_vector_[i];
+        
+        // Add the ohlc_data_ to the combined_data_
+        for (size_t j = 0; j < cols; ++j) {
+            combined_data_[i][j + 3] = std::to_string(ptr[i * cols + j]);
+        }
+    }
+    // assets_ = assets_ + 3;
+
+    // // 打印 codes_ 的内容以验证
+    // std::cout << "Codes:" << std::endl;
+    // for (const auto& code : codes_) {
+    //     std::cout << code << std::endl;
+    // }
+}
+
+
 class BaseCommonDataFeedImpl : public GenericDataImpl<CommonFeedData> {
   public:
     BaseCommonDataFeedImpl(TimeStrConv::func_type time_converter)
@@ -282,21 +474,35 @@ struct CSVCommonDataFeed : BaseCommonDataFeed {
 
 struct BasePriceDataFeed {
     BasePriceDataFeed() = default;
+
     explicit BasePriceDataFeed(std::shared_ptr<BasePriceDataImpl> sp) : sp(std::move(sp)) {}
+
+    BasePriceDataFeed(const BasePriceDataFeed& other) : sp(other.sp) {}
+
+    BasePriceDataFeed& operator=(const BasePriceDataFeed& other) {
+        if (this != &other) {
+            sp = other.sp;
+        }
+        return *this;
+    }
 
     std::shared_ptr<BasePriceDataImpl> sp = nullptr;
 
     bool read() { return sp->read(); }
+
     virtual void reset() { sp->reset(); }
 
-    PriceFeedData *data_ptr() { return sp->data_ptr(); }
+    PriceFeedData* data_ptr() { return sp->data_ptr(); }
+
     int assets() const { return sp->assets(); }
-    const auto &time() const { return sp->data().time; }
-    const auto &codes() const { return sp->codes(); }
 
-    const auto &name() const { return sp->name(); }
+    const auto& time() const { return sp->data().time; }
 
-    BasePriceDataFeed &set_name(const std::string &name) {
+    const auto& codes() const { return sp->codes(); }
+
+    const auto& name() const { return sp->name(); }
+
+    BasePriceDataFeed& set_name(const std::string& name) {
         sp->set_name(name);
         return *this;
     }
@@ -304,34 +510,7 @@ struct BasePriceDataFeed {
     virtual BasePriceDataFeed clone() { return BasePriceDataFeed(sp->clone()); }
 };
 
-struct CSVTabPriceData : BasePriceDataFeed {
-    std::shared_ptr<CSVTabDataImpl> sp = nullptr;
 
-    CSVTabPriceData(const std::string &raw_data_file,
-                    TimeStrConv::func_type time_converter = nullptr)
-        : sp(std::make_shared<CSVTabDataImpl>(raw_data_file, time_converter)) {
-        set_base_sp();
-    }
-    // You have to ensure that two file have the same rows.
-    CSVTabPriceData(const std::string &raw_data_file, const std::string &adjusted_data_file,
-                    TimeStrConv::func_type time_converter = nullptr)
-        : sp(std::make_shared<CSVTabDataImpl>(raw_data_file, adjusted_data_file, time_converter)) {
-        set_base_sp();
-    }
-    explicit CSVTabPriceData(std::shared_ptr<CSVTabDataImpl> sp) : sp(std::move(sp)) {
-        set_base_sp();
-    }
-
-    bool read() { return sp->read(); }
-
-    CSVTabPriceData &set_name(const std::string &name) {
-        BasePriceDataFeed::set_name(name);
-        return *this;
-    }
-
-    void set_base_sp() { BasePriceDataFeed::sp = sp; }
-    BasePriceDataFeed clone() { return CSVTabPriceData(std::make_shared<CSVTabDataImpl>(*sp)); }
-};
 
 struct CSVDirPriceData : BasePriceDataFeed {
     std::shared_ptr<CSVDirDataImpl> sp;
@@ -386,6 +565,24 @@ struct CSVDirPriceData : BasePriceDataFeed {
     // 功能：克隆当前对象，返回一个新的 BasePriceDataFeed 实例。
     BasePriceDataFeed clone() { return BasePriceDataFeed(); }
 };
+
+class PriceData : public BasePriceDataFeed {
+public:
+    PriceData(py::array_t<double> ohlc_data, 
+              const std::vector<std::string>& date_vector, 
+              const std::vector<std::string>& stock_name_vector, 
+              const std::vector<std::string>& stock_vector,
+              TimeStrConv::func_type time_converter = nullptr)
+        : BasePriceDataFeed(std::make_shared<PriceDataImpl>(ohlc_data, date_vector, stock_name_vector, stock_vector, time_converter)) {}
+
+    PriceData& set_name(const std::string &name) {
+        BasePriceDataFeed::set_name(name);
+        return *this;
+    }
+
+    BasePriceDataFeed clone() override { return BasePriceDataFeed(sp->clone()); }
+};
+
 
 //-------------------------------------------------------------------
 template <typename DataT, typename FeedT, typename BufferT> class GenericFeedsAggragator {
@@ -528,7 +725,7 @@ inline void CSVTabDataImpl::init() {
 }
 
 inline void CSVTabDataImpl::cast_ohlc_data_(std::vector<std::string> &row_string, OHLCData &dest) {
-    for (int i = 0; i < assets_; ++i) {
+    for (int i = 0; i < row_string.size(); ++i) {
         // dest.open.coeffRef(i) = std::numeric_limits<double>::quiet_NaN();
         dest.open.coeffRef(i) = 0;
         auto &s = row_string[i + 1];
@@ -583,9 +780,9 @@ inline bool GenericFeedsAggragator<DataT, FeedT, BufferT>::read() {
     if (all_finished) {
         return false;
     }
-
     // Use minimum date as the next date.
     auto p = std::min_element(times_.begin(), times_.end());
+
     time_ = *p;
     for (int i = 0; i < feeds_.size(); ++i) {
         if (times_[i] == time_) {
@@ -707,26 +904,26 @@ inline void CSVDirDataImpl::init() {
     BasePriceDataImpl::init();
 }
 
-#define UNWRAP(...) __VA_ARGS__
-#define BK_CSVDirectoryDataImpl_extra_col(name, init)                                              \
-    inline CSVDirDataImpl &CSVDirDataImpl::extra_##name##_col(                                     \
-        const std::vector<std::pair<int, std::string>> &cols) {                                    \
-        for (const auto &col : cols) {                                                             \
-            extra_##name##_col_.emplace_back(col.first);                                           \
-                                                                                                   \
-            const auto &name_ = col.second;                                                        \
-            extra_##name##_col_names_.emplace_back(name_);                                         \
-            next_.name##_data_[name_] = init;                                                      \
-            std::cout << name_ << " size " << next_.name##_data_[name_].size() << std::endl;       \
-            extra_##name##_data_ref_.emplace_back(next_.name##_data_[name_]);                      \
-        }                                                                                          \
-        std::cout << extra_num_data_ref_[0].get().size() << std::endl;                             \
-        return *this;                                                                              \
-    }
-BK_CSVDirectoryDataImpl_extra_col(num, UNWRAP(VecArrXd::Zero(assets_)));
-BK_CSVDirectoryDataImpl_extra_col(str, UNWRAP(std::vector<std::string>(assets_)));
-#undef BK_CSVDirectoryDataImpl_extra_col
-#undef UNWRAP
+// #define UNWRAP(...) __VA_ARGS__
+// #define BK_CSVDirectoryDataImpl_extra_col(name, init)                                              \
+//     inline CSVDirDataImpl &CSVDirDataImpl::extra_##name##_col(                                     \
+//         const std::vector<std::pair<int, std::string>> &cols) {                                    \
+//         for (const auto &col : cols) {                                                             \
+//             extra_##name##_col_.emplace_back(col.first);                                           \
+//                                                                                                    \
+//             const auto &name_ = col.second;                                                        \
+//             extra_##name##_col_names_.emplace_back(name_);                                         \
+//             next_.name##_data_[name_] = init;                                                      \
+//             std::cout << name_ << " size " << next_.name##_data_[name_].size() << std::endl;       \
+//             extra_##name##_data_ref_.emplace_back(next_.name##_data_[name_]);                      \
+//         }                                                                                          \
+//         std::cout << extra_num_data_ref_[0].get().size() << std::endl;                             \
+//         return *this;                                                                              \
+//     }
+// BK_CSVDirectoryDataImpl_extra_col(num, UNWRAP(VecArrXd::Zero(assets_)));
+// BK_CSVDirectoryDataImpl_extra_col(str, UNWRAP(std::vector<std::string>(assets_)));
+// #undef BK_CSVDirectoryDataImpl_extra_col
+// #undef UNWRAP
 
 
 bool CSVDirDataImpl::read() {
@@ -888,147 +1085,6 @@ void CSVCommonDataImpl::init() { // Read header
         col_names_.emplace_back(std::move(row_string[i]));
     }
 }
-
-using namespace hmdf;
-// A DataFrame with ulong index type
-//
-using ULDataFrame = StdDataFrame<unsigned long>;
-
-// // A DataFrame with string index type
-// //
-// using StrDataFrame = StdDataFrame<std::string>;
-
-// // A DataFrame with DateTime index type
-// //
-// using DTDataFrame = StdDataFrame<DateTime>;
-
-
-
-
-// class BasePriceDataImpl {
-// public:
-//     virtual void set_name(const std::string& name) = 0;
-//     virtual PriceFeedData* data_ptr() const = 0;
-//     virtual int assets() const = 0;
-//     virtual const std::vector<std::string>& codes() const = 0;
-//     virtual std::shared_ptr<BasePriceDataImpl> clone() const = 0;
-// };
-
-class DataFrameDataImpl : public BasePriceDataImpl {
-public:
-    explicit DataFrameDataImpl(const ULDataFrame& df) : df_(df) {}
-
-    bool read() {
-        // 实现读取 DataFrame 的逻辑
-        return !df_.empty();
-    }
-
-    void extra_num_col(const std::vector<std::pair<int, std::string>>& cols) {
-        // 实现处理额外数值列的逻辑
-    }
-
-    void extra_str_col(const std::vector<std::pair<int, std::string>>& cols) {
-        // 实现处理额外字符串列的逻辑
-    }
-
-    void code_extractor(std::function<std::string(std::string)> fun) {
-        // 实现代码提取器的逻辑
-    }
-
-    PriceFeedData* data_ptr() {
-        return &price_feed_data_;
-    }
-
-    // void set_name(const std::string& name) override {
-    //     name_ = name;
-    // }
-
-    // int assets() const override {
-    //     return price_feed_data_.data.open.size();
-    // }
-
-    // const std::vector<std::string>& codes() const override {
-    //     // 返回资产代码，这里是一个占位符
-    //     static std::vector<std::string> dummy_codes = {"AAPL", "GOOGL", "MSFT"};
-    //     return dummy_codes;
-    // }
-
-    const std::string& name() {
-        return name_;
-    }
-
-    const ULDataFrame& get_df() const {
-        return df_;
-    }
-
-private:
-    ULDataFrame df_;
-    PriceFeedData price_feed_data_;
-    std::string name_;
-};
-
-struct BasePriceDataFrameFeed :BasePriceDataFeed{
-    BasePriceDataFrameFeed() = default;
-    explicit BasePriceDataFrameFeed(std::shared_ptr<BasePriceDataImpl> sp) : sp(std::move(sp)) {}
-
-    std::shared_ptr<BasePriceDataImpl> sp = nullptr;
-
-    virtual BasePriceDataFrameFeed& set_name(const std::string& name) {
-        sp->set_name(name);
-        return *this;
-    }
-
-    virtual ~BasePriceDataFrameFeed() = default;
-
-    PriceFeedData* data_ptr() const { return sp->data_ptr(); }
-    int assets() const { return sp->assets(); }
-    const auto& codes() const { return sp->codes(); }
-    const auto& name() const { return sp->name(); }
-
-    virtual BasePriceDataFeed clone() { return BasePriceDataFrameFeed(sp->clone()); }
-};
-
-struct DataFramePriceData : BasePriceDataFrameFeed {
-    std::shared_ptr<DataFrameDataImpl> sp;
-
-    DataFramePriceData(const ULDataFrame& df)
-        : BasePriceDataFrameFeed(), sp(std::make_shared<DataFrameDataImpl>(df)) {
-        set_base_sp();
-    }
-
-    bool read() { return sp->read(); }
-
-    DataFramePriceData& extra_num_col(const std::vector<std::pair<int, std::string>>& cols) {
-        sp->extra_num_col(cols);
-        return *this;
-    }
-
-    DataFramePriceData& extra_str_col(const std::vector<std::pair<int, std::string>>& cols) {
-        sp->extra_str_col(cols);
-        return *this;
-    }
-
-    DataFramePriceData& set_code_extractor(std::function<std::string(std::string)> fun) {
-        sp->code_extractor(fun);
-        return *this;
-    }
-
-    DataFramePriceData& set_name(const std::string& name) {
-        BasePriceDataFrameFeed::set_name(name);
-        return *this;
-    }
-
-    void set_base_sp() {
-        BasePriceDataFrameFeed::sp = std::static_pointer_cast<BasePriceDataImpl>(sp);
-    }
-
-    std::unique_ptr<BasePriceDataFrameFeed> clone() const {
-        return std::make_unique<DataFramePriceData>(sp->get_df());
-    }
-};
-
-
-
 
 } // namespace feeds
 } // namespace backtradercpp

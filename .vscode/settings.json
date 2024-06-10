@@ -88,6 +88,7 @@
         "mprealsupport": "cpp",
         "nonlinearoptimization": "cpp",
         "forward_list": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "alignedvector3": "cpp"
     }
 }

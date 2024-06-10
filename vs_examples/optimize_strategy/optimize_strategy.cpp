@@ -17,7 +17,7 @@ struct DeltaOptionHedgingStrategy : public strategy::GenericStrategy {
         }
 
         // data(0).close(-1);
-        std::cout << data(0).close(Sel::All, 0).transpose() << std::endl;
+        // std::cout << data(0).close(Sel::All, 0).transpose() << std::endl;
         // Short stocks.
         if (time_index() % period == 0) {
             VecArrXi target_S(assets(1));

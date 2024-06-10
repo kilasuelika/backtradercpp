@@ -304,7 +304,7 @@ class GenericStrategy {
         try{
         dump_.save(); 
         }catch (const std::exception& e) {
-                    std::cerr << "錯誤: - " << e.what() << '\n';
+                    // std::cerr << "Error: - " << e.what() << '\n';
 
                 }
         

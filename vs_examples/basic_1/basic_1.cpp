@@ -1,64 +1,14 @@
-// #include <pybind11/pybind11.h>
-// #include <pybind11/numpy.h>
-// #include "../../include/backtradercpp/Cerebro.hpp"
-// #include <DataFrame/DataFrame.h>
-
-
-// using namespace backtradercpp;
-// using namespace hmdf;
-
-
-// namespace py = pybind11;
-
-// struct SimpleStrategy : strategy::GenericStrategy {
-//     void run() override {
-//         // Buy assets at 6th day. Index starts from 0, so index 5 means 6th day.
-//         if (time_index() == 5) {
-//             for (int j = 0; j < data(0).assets(); ++j) {
-//                 if (data(0).valid(-1, j)) {
-//                     // Buy 10 asset j at the price of latest day(-1) on the broker 0.
-//                     buy(0, j, data(0).open(-1, j), 10);
-//                 }
-//             }
-//         }
-//     }
-// };
-
-// ULDataFrame convert_to_ULDataFrame(py::array_t<double> numpy_array) {
-//     if (numpy_array.ndim() != 2) {
-//         throw std::invalid_argument("Expected a 2-dimensional NumPy array");
-//     }
-
-//     py::buffer_info buf_info = numpy_array.request();
-//     size_t rows = buf_info.shape[0];
-//     size_t cols = buf_info.shape[1];
-
-//     ULDataFrame df;
-
-//     for (size_t j = 0; j < cols; ++j) {
-//         std::vector<double> column_data(rows);
-//         for (size_t i = 0; i < rows; ++i) {
-//             double* ptr = reinterpret_cast<double*>(buf_info.ptr);
-//             column_data[i] = *(ptr + i * buf_info.strides[0] / sizeof(double) + j * buf_info.strides[1] / sizeof(double));
-//         }
-//         std::string column_name = "Column_" + std::to_string(j);
-//         df.load_column<double>(column_name.c_str(), column_data);
-//     }
-
-//     return df;
-// }
-
-
-
-
-
-
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include "../../include/backtradercpp/Cerebro.hpp"
+#include "../../include/backtradercpp/DataFeeds.hpp"
 #include <DataFrame/DataFrame.h>
 #include <pybind11/stl.h>
 #include <iostream>
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <windows.h>
+
 
 namespace py = pybind11;
 
@@ -70,7 +20,10 @@ using ULDataFrame = StdDataFrame<unsigned long>;
 struct SimpleStrategy : strategy::GenericStrategy {
     void run() override {
         std::cout << "Running SimpleStrategy" << std::endl;
-        if (time_index() == 5) {
+
+        // 每 20 个时间步长执行一次买入操作
+        if (time_index() % 20 == 0) {
+            std::cout << "assets in buy method: " << data(0).assets() << std::endl;
             for (int j = 0; j < data(0).assets(); ++j) {
                 if (data(0).valid(-1, j)) {
                     std::cout << "Buying asset " << j << std::endl;
@@ -78,64 +31,62 @@ struct SimpleStrategy : strategy::GenericStrategy {
                 }
             }
         }
+
+        // 每 20 个时间步长的第 19 个时间步长执行一次卖出操作
+        if (time_index() % 20 == 19) {
+            std::cout << "assets in sell method: " << data(0).assets() << std::endl;
+            for (int j = 0; j < data(0).assets(); ++j) {
+                if (data(0).valid(-1, j)) {
+                    std::cout << "Selling asset " << j << std::endl;
+                    close(0, j, data(0).open(-1, j));
+                }
+            }
+        }
     }
 };
 
-ULDataFrame convert_to_ULDataFrame(py::array_t<double> numpy_array, const std::string& test) {
-    std::cout << "Converting NumPy array to ULDataFrame" << std::endl;
-    auto buf = numpy_array.request();
-    if (buf.ndim != 2) {
-        throw std::invalid_argument("Expected a 2-dimensional NumPy array");
+
+void printVector(const std::vector<std::string>& vec, const std::string& label) {
+    std::cout << label << ": ";
+    for (const auto& str : vec) {
+        std::cout << str << " ";
     }
-
-    size_t rows = buf.shape[0];
-    size_t cols = buf.shape[1];
-
-    ULDataFrame df;
-    double *ptr = static_cast<double *>(buf.ptr);
-
-    for (size_t j = 0; j < cols; ++j) {
-        std::vector<double> column_data(rows);
-        for (size_t i = 0; i < rows; ++i) {
-            column_data[i] = ptr[i * cols + j];
-        }
-        std::string column_name = "Column_" + std::to_string(j);
-        df.load_column<double>(column_name.c_str(), column_data);
-    }
-
-    // if (date_array.size() != rows) {
-    //     throw std::invalid_argument("Expected date array to have same size as first dimension of NumPy array");
-    // }
-    // std::vector<std::string> date_vector(date_array.begin(), date_array.end());
-    // df.load_column<std::string>("date", date_vector);
-
-    return df;
+    std::cout << std::endl;
 }
 
-
-
-extern "C" {
-    __declspec(dllexport) void runBacktrader(py::array_t<double> numpy_array,const std::string& test) {
+void runBacktrader(py::array_t<double> ohlc_data, 
+                   const std::vector<std::string>& date_vector, 
+                   const std::vector<std::string>& stock_name_vector, 
+                   const std::vector<std::string>& stock_vector) {
+    SetConsoleOutputCP(CP_UTF8);
     std::cout << "Running runBacktrader" << std::endl;
-    std::cout << "test: " << test << std::endl;
     py::gil_scoped_acquire acquire;
     try {
-        std::cout << "convert_to_ULDataFrame start.." << std::endl;
-        ULDataFrame df = convert_to_ULDataFrame(numpy_array, test);
-        std::cout << "convert_to_ULDataFrame success.." << std::endl;
+        // Debug: Print the input data
+        std::cout << "Printing input vectors for debugging..." << std::endl;
+        printVector(date_vector, "Date Vector");
+        // printVector(stock_name_vector, "Stock Name Vector");
+        // printVector(stock_vector, "Stock Vector");
 
-        auto priceData = std::make_shared<backtradercpp::feeds::DataFramePriceData>(df);
-        auto basePriceData = std::dynamic_pointer_cast<backtradercpp::feeds::BasePriceDataFeed>(priceData);
+        // Initialize PriceData
+        std::shared_ptr<feeds::PriceData> priceData = std::make_shared<feeds::PriceData>(ohlc_data, date_vector, stock_name_vector, stock_vector,feeds::TimeStrConv::delimited_date);
 
+        std::cout << "PriceData codes size: " << priceData->codes().size() << std::endl;
+        for (const auto& code : priceData->codes()) {
+            std::cout << "PriceData code: " << code << std::endl;
+        }
+
+        // Create and configure Cerebro
         Cerebro cerebro;
-        std::cout << "add broker.." << std::endl;
+        std::cout << "Adding broker..." << std::endl;
         cerebro.add_broker(
-            broker::BaseBroker(100000, 0.0005, 0.001)
-                .set_df_feed(*basePriceData)
+            broker::BaseBroker(5000000, 0.0005, 0.001)
+                .set_feed(*priceData)
         );
-        std::cout << "add strategy.." << std::endl;
+        std::cout << "Adding strategy..." << std::endl;
         cerebro.add_strategy(std::make_shared<SimpleStrategy>());
-        std::cout << "cerebro run.." << std::endl;
+
+        std::cout << "Running cerebro..." << std::endl;
         cerebro.run();
     } catch (const std::exception &e) {
         std::cerr << "Error: " << e.what() << std::endl;
@@ -144,6 +95,5 @@ extern "C" {
 
 PYBIND11_MODULE(backtradercpp, m) {
     m.def("runBacktrader", &runBacktrader, "Run the backtrader strategy",
-        py::arg("numpy_array"), py::arg("date_array"));
-}
+        py::arg("ohlc_data"), py::arg("date_vector"), py::arg("stock_name_vector"), py::arg("stock_vector"));
 }

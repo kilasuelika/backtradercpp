@@ -48,14 +48,28 @@ template <typename T, typename T2> void reset_value(T &m, const T2 &v_) {
 //                        t.time_of_day().seconds());
 // }
 inline std::string to_string(const boost::posix_time::ptime &t) {
-    return fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-                       static_cast<int>(t.date().year()), 
-                       static_cast<int>(t.date().month()), 
-                       static_cast<int>(t.date().day()), 
-                       static_cast<int>(t.time_of_day().hours()), 
-                       static_cast<int>(t.time_of_day().minutes()), 
-                       static_cast<int>(t.time_of_day().seconds()));
-}
+        if (t == boost::posix_time::not_a_date_time) {
+            std::cerr << "Error: not-a-date-time" << std::endl;
+            return "not-a-date-time";
+        } 
+        std::cerr << "Starting format time..." << std::endl;
+        try {
+            std::string formatted_time = fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+                                              static_cast<int>(t.date().year()), 
+                                              static_cast<unsigned>(t.date().month().as_number()), 
+                                              static_cast<int>(t.date().day()), 
+                                              static_cast<int>(t.time_of_day().hours()), 
+                                              static_cast<int>(t.time_of_day().minutes()), 
+                                              static_cast<int>(t.time_of_day().seconds()));
+            std::cout << "formatted_time: " << formatted_time << std::endl;
+            return formatted_time;
+        } catch (const std::exception& e) {
+            std::cerr << "Error formatting time: " << e.what() << std::endl;
+            return "format-error";
+        }
+    }
+
+
 inline double sw_to_seconds(const spdlog::stopwatch &sw) {
 
     return static_cast<double>(
@@ -64,7 +78,7 @@ inline double sw_to_seconds(const spdlog::stopwatch &sw) {
 }
 
 template <typename... T> void cout(fmt::format_string<T...> fmt, T &&...args) {
-    std::cout << fmt::format(fmt, args...);
+    // std::cout << fmt::format(fmt, args...);
 }
 
 template <typename T> std::string format_map(const T &m) {

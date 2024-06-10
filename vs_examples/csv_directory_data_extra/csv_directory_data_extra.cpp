@@ -13,7 +13,7 @@ struct EqualWeightStrategy : public strategy::GenericStrategy {
         }
         if (data_valid(1)) {
             // fmt::print("code : {} , open: {}\n", codes(1)[0], data(1).close(-1, 0));
-            util::cout("code: {}\n", codes(1)[0]);
+            // util::cout("code: {}\n", codes(1)[0]);
         }
         // std::abort();
         if (time_index() % 30 == 0) {
