@@ -208,7 +208,9 @@ class CSVDirDataImpl : public BasePriceDataImpl {
 
 class PriceDataImpl : public BasePriceDataImpl {
 public:
-    PriceDataImpl(py::array_t<double> ohlc_data, 
+    PriceDataImpl(
+                    // py::array_t<double> ohlc_data, 
+                  const std::vector<std::vector<double>>& ohlc_data,
                   const std::vector<std::string>& date_vector, 
                   const std::vector<std::string>& stock_name_vector, 
                   const std::vector<std::string>& stock_vector,
@@ -240,11 +242,13 @@ public:
 private:
     void init() override;
 
-    py::array_t<double> ohlc_data_;
+    // py::array_t<double> ohlc_data_;
+    std::vector<std::vector<double>> ohlc_data_;
     std::vector<std::string> date_vector_;
     std::vector<std::string> stock_name_vector_;
     std::vector<std::string> stock_vector_;
     std::vector<std::vector<std::string>> combined_data_;
+    std::vector<std::string> unique_dates_vector_;
     int index;
     size_t assets_;
     TimeStrConv::func_type time_converter_;
@@ -253,9 +257,9 @@ private:
 
 inline bool PriceDataImpl::read() {
     // 假设在读取数据后需要一些额外处理或验证
-    std::cout << "Reading PriceDataImpl" << std::endl;
-    std::cout << "combined_data_.size: " << combined_data_.size() << std::endl;
-    std::cout << "combined_data_[0].size: " << combined_data_[0].size() << std::endl;
+    // std::cout << "Reading PriceDataImpl" << std::endl;
+    // std::cout << "combined_data_.size: " << combined_data_.size() << std::endl;
+    // std::cout << "combined_data_[0].size: " << combined_data_[0].size() << std::endl;
 
     try
     {
@@ -264,21 +268,21 @@ inline bool PriceDataImpl::read() {
             return false;
         }
 
-    std::cout << "test a" << std::endl;
-    std::cout << " index : " << index << std::endl;
+    // std::cout << "test a" << std::endl;
+    // std::cout << " index : " << index << std::endl;
     auto row_string = combined_data_[index];
-    std::cout << "row_string[2] : " << row_string[2] << std::endl;
+    // std::cout << "row_string[2] : " << row_string[2] << std::endl;
     next_.time = boost::posix_time::time_from_string(time_converter_(row_string[2]));
     // std::cout << "test c" << std::endl;
     cast_ohlc_data_(row_string, next_.data);
-    std::cout << "test d" << std::endl;
+    // std::cout << "test d" << std::endl;
 
     // Set volume to very large.
-    std::cout << "test e" << std::endl;
+    // std::cout << "test e" << std::endl;
     next_.volume.setConstant(1e12);
-    std::cout << "test f" << std::endl;
+    // std::cout << "test f" << std::endl;
     next_.validate_assets();
-    std::cout << "test g" << std::endl;
+    // std::cout << "test g" << std::endl;
 
     ++index;
 
@@ -291,7 +295,8 @@ inline bool PriceDataImpl::read() {
 }
 
 inline void PriceDataImpl::reset() {
-    ohlc_data_ = py::array_t<double>();
+    // ohlc_data_ = py::array_t<double>();
+    ohlc_data_.clear();
     date_vector_.clear();
     stock_name_vector_.clear();
     stock_vector_.clear();
@@ -307,23 +312,23 @@ inline void PriceDataImpl::cast_ohlc_data_(std::vector<std::string> &row_string,
         // 修剪并解析开盘价
         boost::algorithm::trim(row_string[3]);
         dest.open.coeffRef(0) = boost::lexical_cast<double>(row_string[3]);
-        std::cout << "today open: " << row_string[3] << std::endl;
+        // std::cout << "today open: " << row_string[3] << std::endl;
 
         // 修剪并解析最高价
         boost::algorithm::trim(row_string[4]);
         dest.close.coeffRef(0) = boost::lexical_cast<double>(row_string[4]);
-        std::cout << "today close: " << row_string[4] << std::endl;
+        // std::cout << "today close: " << row_string[4] << std::endl;
 
 
         // 修剪并解析最低价
         boost::algorithm::trim(row_string[5]);
         dest.high.coeffRef(0) = boost::lexical_cast<double>(row_string[5]);
-        std::cout << "today high: " << row_string[5] << std::endl;
+        // std::cout << "today high: " << row_string[5] << std::endl;
 
         // 修剪并解析收盘价
         boost::algorithm::trim(row_string[6]);
         dest.low.coeffRef(0) = boost::lexical_cast<double>(row_string[6]);
-        std::cout << "today low: " << row_string[6] << std::endl;
+        // std::cout << "today low: " << row_string[6] << std::endl;
 
     } catch (const boost::bad_lexical_cast &e) {
         util::cout("Bad cast: {}\n", e.what());
@@ -335,17 +340,38 @@ std::shared_ptr<BasePriceDataImpl> PriceDataImpl::clone() {
     return std::make_shared<PriceDataImpl>(*this);
 }
 
+
 void PriceDataImpl::init() {
-    std::cout << "Initializing PriceDataImpl" << std::endl;
+    // std::cout << "Initializing PriceDataImpl" << std::endl;
 
-    auto buf = ohlc_data_.request();
-    if (buf.ndim != 2) {
-        throw std::invalid_argument("Expected a 2-dimensional NumPy array");
-    }
+    // 创建一个 unordered_set 来存储不重复的日期
+    std::unordered_set<std::string> unique_dates_set(date_vector_.begin(), date_vector_.end());
 
-    size_t rows = buf.shape[0];
-    size_t cols = buf.shape[1];
+    // 将 unordered_set 转换为 vector
+    std::vector<std::string> unique_dates_vector(unique_dates_set.begin(), unique_dates_set.end());
 
+    unique_dates_vector_ = unique_dates_vector;
+
+    // if(stock_vector_[0] == "2330"){
+    //     for (const auto& row : ohlc_data_) {
+    //         for(const auto& col : row  ){
+    //             std::cout << col << std::endl;
+    //         }
+    //         std::cout << std::endl;
+    // }
+    // }
+        
+
+    // auto buf = ohlc_data_.request();
+    // if (buf.ndim != 2) {
+    //     throw std::invalid_argument("Expected a 2-dimensional NumPy array");
+    // }
+
+    // size_t rows = buf.shape[0];
+    // size_t cols = buf.shape[1];
+
+    size_t rows = ohlc_data_.size();
+    size_t cols = ohlc_data_[0].size();
     // Ensure the sizes match
     if (stock_vector_.size() != rows || stock_name_vector_.size() != rows || date_vector_.size() != rows) {
         throw std::invalid_argument("The size of date_vector, stock_name_vector, and stock_vector must match the number of rows in numpy_array.");
@@ -353,7 +379,7 @@ void PriceDataImpl::init() {
 
     assets_ = cols;
 
-    std::cout << "assets_ count is " << std::to_string(assets_) << std::endl;
+    // std::cout << "assets_ count is " << std::to_string(assets_) << std::endl;
 
     // Initialize the codes and data structures
     codes_.resize(rows);
@@ -364,7 +390,7 @@ void PriceDataImpl::init() {
     // Initialize combined_data_ with additional columns for date, stock name, and stock
     combined_data_.resize(rows, std::vector<std::string>(cols + 3));
     next_.resize(rows);
-    auto ptr = static_cast<double*>(buf.ptr);
+    // auto ptr = static_cast<double*>(buf.ptr);
 
     // // 打印 ptr 的内容以验证数据
     // std::cout << "OHLC Data (Row-Major Order):" << std::endl;
@@ -380,11 +406,16 @@ void PriceDataImpl::init() {
         combined_data_[i][0] = stock_vector_[i];
         combined_data_[i][1] = stock_name_vector_[i];
         combined_data_[i][2] = date_vector_[i];
+
+        combined_data_[i][3] = std::to_string(ohlc_data_[i][0]);
+        combined_data_[i][4] = std::to_string(ohlc_data_[i][1]);
+        combined_data_[i][5] = std::to_string(ohlc_data_[i][2]);
+        combined_data_[i][6] = std::to_string(ohlc_data_[i][3]);
         
         // Add the ohlc_data_ to the combined_data_
-        for (size_t j = 0; j < cols; ++j) {
-            combined_data_[i][j + 3] = std::to_string(ptr[i * cols + j]);
-        }
+        // for (size_t j = 0; j < cols; ++j) {
+        //     combined_data_[i][j + 3] = std::to_string(ptr[i * cols + j]);
+        // }
     }
     // assets_ = assets_ + 3;
 
@@ -568,7 +599,7 @@ struct CSVDirPriceData : BasePriceDataFeed {
 
 class PriceData : public BasePriceDataFeed {
 public:
-    PriceData(py::array_t<double> ohlc_data, 
+    PriceData(const std::vector<std::vector<double>>& ohlc_data, 
               const std::vector<std::string>& date_vector, 
               const std::vector<std::string>& stock_name_vector, 
               const std::vector<std::string>& stock_vector,

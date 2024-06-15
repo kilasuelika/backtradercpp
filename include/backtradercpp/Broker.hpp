@@ -185,7 +185,7 @@ class BaseBroker {
                double long_tax_rate = 0, double short_tax_rate = 0)
         : sp(std::make_shared<BaseBrokerImpl>(cash, long_rate, short_rate, long_tax_rate,
                                               short_tax_rate)) {
-                                        std::cout << "BaseBroker init.." << std::endl;        
+                                        // std::cout << "BaseBroker init.." << std::endl;        
                                               }
 
     virtual BaseBroker &commission_eval(std::shared_ptr<GenericCommission> commission_) {
@@ -483,7 +483,7 @@ inline void BaseBrokerImpl::process(Order &order) {
                     if (portfolio_.cash < total_v) {
                         if (!allow_default_) {
                             order_valid = false;
-                            fmt::print(fmt::fg(fmt::color::red), "Insufficient funds.\n");
+                            // fmt::print(fmt::fg(fmt::color::red), "Insufficient funds.\n");
                         }
                     }
                     // 检查仓位是否允许
@@ -506,39 +506,22 @@ inline void BaseBrokerImpl::process(Order &order) {
                                cash_after = portfolio_.cash;
                         order.state = OrderState::Success;
                                              order.state = OrderState::Success;
-                        // std::cout << "Formatted time: " << util::to_string(time) << std::endl;
-                        // std::cout << "cash_before: " << cash_before << std::endl;
-                        // std::cout << "asset: " << asset << std::endl;
-                        // std::cout << "codes size: " << codes_.size() << std::endl;
-                        // std::cout << "position_before: " << position_before << std::endl;
-                        // std::cout << "volume: " << order.volume << std::endl;
-                        // std::cout << "price: " << order.price << std::endl;
-                        // std::cout << "value: " << order.value << std::endl;
-                        // std::cout << "fee: " << order.fee << std::endl;
-                        // std::cout << "position_after: " << position_after << std::endl;
-                        // std::cout << "cash_after: " << cash_after << std::endl;
-                        // log_util_.write_transaction(std::format(
-                        //     "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}", util::to_string(time),
-                        //     cash_before, asset, codes_[asset], position_before,
-                        //     order.volume > 0 ? "+" : "-", order.volume, order.price, order.value,
-                        //     order.fee, position_after, cash_after, ""));
-                        // std::cout << "test number 3324" << std::endl;
                     } else {
-                        fmt::print(fmt::fg(fmt::color::red), "Order is invalid.\n");
+                        // fmt::print(fmt::fg(fmt::color::red), "Order is invalid.\n");
                     }
                 } else {
-                    fmt::print(fmt::fg(fmt::color::red), "Order price out of bounds.\n");
+                    // fmt::print(fmt::fg(fmt::color::red), "Order price out of bounds.\n");
                 }
             } else {
-                fmt::print(fmt::fg(fmt::color::red), "Asset not valid for current time.\n");
+                // fmt::print(fmt::fg(fmt::color::red), "Asset not valid for current time.\n");
             }
         } else {
             order.state = OrderState::Expired;
         }
     } catch (const std::exception &e) {
-        fmt::print(fmt::fg(fmt::color::red), "Error processing order: {}\n", e.what());
+        // fmt::print(fmt::fg(fmt::color::red), "Error processing order: {}\n", e.what());
     } catch (...) {
-        fmt::print(fmt::fg(fmt::color::red), "Unknown error processing order.\n");
+        // fmt::print(fmt::fg(fmt::color::red), "Unknown error processing order.\n");
     }
     // std::cout << "test number 3325" << std::endl;
 }
@@ -574,28 +557,20 @@ void BaseBrokerImpl::update_info() {
                                          util::to_string(current_->time), "", "Cash", "", "",
                                          portfolio_.cash, ""));
 
-    std::cout << "test number 800" << std::endl;
     for (auto &[asset, item] : portfolio_.portfolio_items) {
-        std::cout << "test number 8000" << std::endl;
         std::string state = "";
         if (current_->valid.coeff(asset)) {
-            std::cout << "test number 8001" << std::endl;
             item.update_value(current_->time, current_->data.close(asset),
                               current_->adj_data.close(asset));
         } else {
-            std::cout << "test number 8002" << std::endl;
             state = "Invalid";
         }
-        std::cout << "test number 8003" << std::endl;
     //     log_util_.write_position(std::format("{}, {}, {}, {}, {}, {}, {}",
     //                                          util::to_string(current_->time), asset, codes_[asset],
     //                                          item.position, item.prev_price, item.value, state));
     }
-    std::cout << "test number 801" << std::endl;
     portfolio_.update_info();
-    std::cout << "test number 802" << std::endl;
     analyzer_.update_total_value(portfolio_.total_value);
-    std::cout << "test number 803" << std::endl;
 }
 
 inline void BaseBrokerImpl::resize(int n) {}
@@ -604,19 +579,16 @@ void BaseBrokerImpl::set_feed(feeds::BasePriceDataFeed data) {
     feed_ = data;
 
     // 检查数据传递是否正确
-    std::cout << "Data name: " << data.name() << std::endl;
-    std::cout << "Data assets: " << data.assets() << std::endl;
-    std::cout << "Data codes size: " << data.codes().size() << std::endl;
-    for (const auto& code : data.codes()) {
-        std::cout << "Data code: " << code << std::endl;
-    }
+    // std::cout << "Data name: " << data.name() << std::endl;
+    // std::cout << "Data assets: " << data.assets() << std::endl;
+    // std::cout << "Data codes size: " << data.codes().size() << std::endl;
 
     analyzer_.set_name(data.name());
     resize(data.assets());
     current_ = data.data_ptr();
     codes_ = data.codes();
 
-    std::cout << "CODES_SIZE: " << codes_.size() << std::endl;
+    // std::cout << "CODES_SIZE: " << codes_.size() << std::endl;
 }
 
 void BaseBrokerImpl::set_df_feed(feeds::BasePriceDataFeed data) {
@@ -721,29 +693,26 @@ void StockBrokerImpl::set_xrd_dir(
 }
 
 inline void BrokerAggragator::process(OrderPool &pool) {
-    std::cout << "Starting process function" << std::endl;
+    // std::cout << "Starting process function" << std::endl;
     
     for (auto &order : pool.orders) {
-        std::cout << "Processing order with broker_id: " << order.broker_id << std::endl;
+        // std::cout << "Processing order with broker_id: " << order.broker_id << std::endl;
         
         if (order.broker_id >= brokers_.size()) {
             std::cerr << "Error: broker_id out of range" << std::endl;
             continue;
         }
-        std::cout << "test 301" << std::endl;
         auto &broker = brokers_[order.broker_id]; // 注意这里应该是引用而不是拷贝
-        std::cout << "test 302" << std::endl;
         broker.process(order);
-        std::cout << "test 303" << std::endl;
 
         if (order.state == OrderState::Waiting) { // 这里应该是 == 而不是 =
             broker.add_order(order);
         }
 
-        std::cout << "Processed order with state: " << static_cast<int>(order.state) << std::endl;
+        // std::cout << "Processed order with state: " << static_cast<int>(order.state) << std::endl;
     }
 
-    std::cout << "Finished processing orders" << std::endl;
+    // std::cout << "Finished processing orders" << std::endl;
 }
 
 
@@ -804,7 +773,7 @@ void BrokerAggragator::_write_log() {
         std::string log_entry = std::format("{}, {}", util::to_string(last_time), wealth_);
         
         *wealth_file_ << log_entry;
-        std::cout << "write log format string finish ..." << std::endl;
+        // std::cout << "write log format string finish ..." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "錯誤: - " << e.what() << '\n';
     }
@@ -922,27 +891,27 @@ inline void BrokerAggragator::summary() {
         util::cout("No data...\n");
     } else {
 
-        fmt::print("{: ^6} : {: ^21} —— {: ^21}, {: ^12} periods\n", "Time",
-                   util::to_string(times_[0]), util::to_string(times_.back()), times_.size());
+        // fmt::print("{: ^6} : {: ^21} —— {: ^21}, {: ^12} periods\n", "Time",
+        //            util::to_string(times_[0]), util::to_string(times_.back()), times_.size());
         double start_ = total_value_analyzer_.total_value_history().coeff(0);
         double end_ = total_value_analyzer_.total_value_history().coeff(total_value_analyzer_.total_value_history().size() - 1);
         double d = end_ - start_;
 
-        if (d >= 0) {
-            fmt::print("{: ^6} : {: ^21.4f} —— {: ^21.4f}, {: ^12.2f} profit\n", "Wealth", start_,
-                       end_, d);
-        } else {
-            fmt::print("{: ^6} : {: ^21.4f} —— {: ^21.4f}, {: ^12.2f} loss\n", "Wealth", start_,
-                       end_, d);
-        }
+        // if (d >= 0) {
+        //     fmt::print("{: ^6} : {: ^21.4f} —— {: ^21.4f}, {: ^12.2f} profit\n", "Wealth", start_,
+        //                end_, d);
+        // } else {
+        //     fmt::print("{: ^6} : {: ^21.4f} —— {: ^21.4f}, {: ^12.2f} loss\n", "Wealth", start_,
+        //                end_, d);
+        // }
 
         cal_metrics();
-        metric_analyzer_.print_table();
-        if (log_) {
-            metric_analyzer_.write_table(
-                (std::filesystem::path(log_dir_) / std::filesystem::path("Performance.csv"))
-                    .string());
-        }
+        // metric_analyzer_.print_table();
+        // if (log_) {
+        //     metric_analyzer_.write_table(
+        //         (std::filesystem::path(log_dir_) / std::filesystem::path("Performance.csv"))
+        //             .string());
+        // }
     }
 
     util::cout("{:=^100}\n", "");

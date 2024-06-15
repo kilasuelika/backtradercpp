@@ -52,7 +52,7 @@ inline std::string to_string(const boost::posix_time::ptime &t) {
             std::cerr << "Error: not-a-date-time" << std::endl;
             return "not-a-date-time";
         } 
-        std::cerr << "Starting format time..." << std::endl;
+        // std::cerr << "Starting format time..." << std::endl;
         try {
             std::string formatted_time = fmt::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
                                               static_cast<int>(t.date().year()), 
@@ -61,7 +61,7 @@ inline std::string to_string(const boost::posix_time::ptime &t) {
                                               static_cast<int>(t.time_of_day().hours()), 
                                               static_cast<int>(t.time_of_day().minutes()), 
                                               static_cast<int>(t.time_of_day().seconds()));
-            std::cout << "formatted_time: " << formatted_time << std::endl;
+            // std::cout << "formatted_time: " << formatted_time << std::endl;
             return formatted_time;
         } catch (const std::exception& e) {
             std::cerr << "Error formatting time: " << e.what() << std::endl;
