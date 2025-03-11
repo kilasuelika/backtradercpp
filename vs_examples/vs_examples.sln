@@ -13,7 +13,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "directory_data", "directory
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{875E9E63-353B-4091-92B6-A7F239BA7825}"
 	ProjectSection(SolutionItems) = preProject
+		..\include\backtradercpp\Analyzer.hpp = ..\include\backtradercpp\Analyzer.hpp
+		..\include\backtradercpp\AyalysisUtil.hpp = ..\include\backtradercpp\AyalysisUtil.hpp
+		..\include\backtradercpp\Broker.hpp = ..\include\backtradercpp\Broker.hpp
+		..\include\backtradercpp\Cerebro.hpp = ..\include\backtradercpp\Cerebro.hpp
+		..\include\backtradercpp\Common.hpp = ..\include\backtradercpp\Common.hpp
+		..\include\backtradercpp\DataFeeds.hpp = ..\include\backtradercpp\DataFeeds.hpp
+		..\include\backtradercpp\Optimizer.hpp = ..\include\backtradercpp\Optimizer.hpp
+		..\include\backtradercpp\RandomProcessDataFeeds.hpp = ..\include\backtradercpp\RandomProcessDataFeeds.hpp
 		..\ReadMe-template.md = ..\ReadMe-template.md
+		..\include\backtradercpp\Strategy.hpp = ..\include\backtradercpp\Strategy.hpp
+		..\include\backtradercpp\util.hpp = ..\include\backtradercpp\util.hpp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "csv_directory_data_extra", "csv_directory_data_extra\csv_directory_data_extra.vcxproj", "{4406D31C-61A8-4E96-846B-879247B09DA9}"
@@ -27,6 +37,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "optimize_strategy", "optimize_strategy\optimize_strategy.vcxproj", "{58825C04-21FE-4A88-8856-07EB61B4847F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dump_data", "dump_data\dump_data.vcxproj", "{46D3F9B9-8D91-47BB-8497-C61148AE7414}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "random_process_data", "random_process_data\random_process_data.vcxproj", "{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -116,6 +128,14 @@ Global
 		{46D3F9B9-8D91-47BB-8497-C61148AE7414}.Release|x64.Build.0 = Release|x64
 		{46D3F9B9-8D91-47BB-8497-C61148AE7414}.Release|x86.ActiveCfg = Release|Win32
 		{46D3F9B9-8D91-47BB-8497-C61148AE7414}.Release|x86.Build.0 = Release|Win32
+		{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}.Debug|x64.ActiveCfg = Debug|x64
+		{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}.Debug|x64.Build.0 = Debug|x64
+		{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}.Debug|x86.ActiveCfg = Debug|Win32
+		{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}.Debug|x86.Build.0 = Debug|Win32
+		{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}.Release|x64.ActiveCfg = Release|x64
+		{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}.Release|x64.Build.0 = Release|x64
+		{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}.Release|x86.ActiveCfg = Release|Win32
+		{3B1B1928-BE28-4A0C-AF71-34B71F83CD7F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

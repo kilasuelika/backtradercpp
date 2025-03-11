@@ -11,13 +11,14 @@ As the name suggesting, this library is partially inspired by [backtrader](https
 - [x] History data to vector and matrix
 - [ ] data().ret() and data().adj_ret()
 - [ ] data().invalid_count(): count invalid data count in window
+- [ ] RandomProcessDataFeeds for random process simulation and theoretic research
 
 ## Install
 
 It's a header only library. But you need to install some dependencies. On windows:
 
 ```
-./vcpkg install boost:x64-windows eigen3:x64-windows fmt:x64-windows libfort:x64-windows
+./vcpkg install boost:x64-windows fmt:x64-windows libfort:x64-windows spdlog:x64-windows
 ```
 
 ## Example

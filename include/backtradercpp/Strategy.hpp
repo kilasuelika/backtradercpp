@@ -300,7 +300,7 @@ class GenericStrategy {
     }
 
     virtual void finish(){};
-    void finish_all() { dump_.save(); }
+    void finish_all() { dump_.finish(); }
 
     virtual ~GenericStrategy() = default;
 
