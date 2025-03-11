@@ -4,14 +4,14 @@ As the name suggesting, this library is partially inspired by [backtrader](https
 
 ## ToDo
 
-- [ ] Alignment between price and common data
-- [ ] Multiple strategies support
-- [ ] Strategy Optimizer
-- [x] Strategy data dump (not price data)
-- [x] History data to vector and matrix
-- [ ] data().ret() and data().adj_ret()
-- [ ] data().invalid_count(): count invalid data count in window
-- [ ] RandomProcessDataFeeds for random process simulation and theoretic research
+-   [ ] Alignment between price and common data
+-   [ ] Multiple strategies support
+-   [ ] Strategy Optimizer
+-   [x] Strategy data dump (not price data)
+-   [x] History data to vector and matrix
+-   [ ] data().ret() and data().adj_ret()
+-   [ ] data().invalid_count(): count invalid data count in window
+-   [ ] RandomProcessDataFeeds for random process simulation and theoretic research
 
 ## Install
 
@@ -97,6 +97,14 @@ An `optimize_strategy` function is provided to optimize a strategy with tabular 
 ![[vs_examples/optimize_strategy/optimize_strategy.cpp]]
 ```
 
+### Random process data generation
+
+RandomProcessDataFeeds provide some random process generators like geometric brownian motion to generate price data, this can be useful when doing research.
+
+```cpp
+![[vs_examples/random_process_data/random_process_data.cpp]]
+```
+
 ## Important Notes
 
 1. The library will read data row by row. So you must sort data before running. Also note that currently data sources doesn't deal with thousands separator. Please preprocess data before.
@@ -115,9 +123,9 @@ An `optimize_strategy` function is provided to optimize a strategy with tabular 
 
 ```cpp
 boost::posix_time::ptime time(); // Current time.
-int time_index();  //Count of days (0 start).  
+int time_index();  //Count of days (0 start).
 
-FullAssetData &data(int broker);   
+FullAssetData &data(int broker);
  VecArrXd data(broker).open(int i=-1) const;  //-1 means latest (today) in window, -2 means previous day.
  double   data(broker).open(int i, int asset) const; //close of an asset.
  VecArrXd data(broker).open(Sel::All, int asset) const ; //Return last window of a specific asset as a vector.
@@ -128,7 +136,7 @@ FullAssetData &data(int broker);
  VecXrrXb data(broker).valid(int i=-1);  //If asset is valid.
 
 //Number of assets.
-int assets(int broker);  
+int assets(int broker);
 double cash(int broker);
 
 const VecArrXi &positions(int broker) ; //A full length vector (may contain 0 if didn't buy some assets) of position on each asset.
@@ -145,8 +153,6 @@ using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
 using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
 using RowArrayXd = Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 ```
-
-
 
 ### Core logic
 

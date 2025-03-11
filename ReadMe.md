@@ -4,20 +4,21 @@ As the name suggesting, this library is partially inspired by [backtrader](https
 
 ## ToDo
 
-- [ ] Alignment between price and common data
-- [ ] Multiple strategies support
-- [ ] Strategy Optimizer
-- [x] Strategy data dump (not price data)
-- [x] History data to vector and matrix
-- [ ] data().ret() and data().adj_ret()
-- [ ] data().invalid_count(): count invalid data count in window
+-   [ ] Alignment between price and common data
+-   [ ] Multiple strategies support
+-   [ ] Strategy Optimizer
+-   [x] Strategy data dump (not price data)
+-   [x] History data to vector and matrix
+-   [ ] data().ret() and data().adj_ret()
+-   [ ] data().invalid_count(): count invalid data count in window
+-   [ ] RandomProcessDataFeeds for random process simulation and theoretic research
 
 ## Install
 
 It's a header only library. But you need to install some dependencies. On windows:
 
 ```
-./vcpkg install boost:x64-windows eigen3:x64-windows fmt:x64-windows libfort:x64-windows
+./vcpkg install boost:x64-windows fmt:x64-windows libfort:x64-windows spdlog:x64-windows
 ```
 
 ## Example
@@ -580,6 +581,47 @@ int main() {
 }
 ```
 
+### Random process data generation
+
+RandomProcessDataFeeds provide some random process generators like geometric brownian motion to generate price data, this can be useful when doing research.
+
+```cpp
+#include <iostream>
+#include "../../include/backtradercpp/Cerebro.hpp"
+#include "../../include/backtradercpp/RandomProcessGenerator.hpp"
+#include "../../include/backtradercpp/RandomProcessDataFeeds.hpp"
+using namespace backtradercpp;
+using namespace std;
+
+struct SimpleStrategy : strategy::GenericStrategy {
+    void run() override {
+        // Buy assets at 6th day. Index starts from 0, so index 5 means 6th day.
+        if (time_index() == 5) {
+            for (int j = 0; j < data(0).assets(); ++j) {
+                if (data(0).valid(-1, j)) {
+                    // Buy 10 asset j at the price of latest day(-1) on the broker 0.
+                    buy(0, j, data(0).open(-1, j), 10);
+                }
+            }
+        }
+
+        Eigen::VectorXd diff = data(0).close() - data(0).close().mean();  // Element-wise difference
+        double variance = (diff.array().square().sum()) / diff.size();  // Variance formula
+        fmt::print("Mean value: {}, variance: {}\n", data(0).close().mean(), variance);
+    }
+};
+int main() {
+    Cerebro cerebro;
+    // non_delimit_date is a function that convert date string like "20200101" to standard format.
+    //  0.0005 and 0.001 are commission rate for long and short trading.
+    cerebro.add_broker(
+        broker::BaseBroker(0.0005, 0.001)
+        .set_feed(feeds::RandomProcessData(100, GeometricBrownianMotionProcess<double>(0, 1, 100)).set_dump_csv("GBM.csv")));
+    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.run();
+}
+```
+
 ## Important Notes
 
 1. The library will read data row by row. So you must sort data before running. Also note that currently data sources doesn't deal with thousands separator. Please preprocess data before.
@@ -598,9 +640,9 @@ int main() {
 
 ```cpp
 boost::posix_time::ptime time(); // Current time.
-int time_index();  //Count of days (0 start).  
+int time_index();  //Count of days (0 start).
 
-FullAssetData &data(int broker);   
+FullAssetData &data(int broker);
  VecArrXd data(broker).open(int i=-1) const;  //-1 means latest (today) in window, -2 means previous day.
  double   data(broker).open(int i, int asset) const; //close of an asset.
  VecArrXd data(broker).open(Sel::All, int asset) const ; //Return last window of a specific asset as a vector.
@@ -611,7 +653,7 @@ FullAssetData &data(int broker);
  VecXrrXb data(broker).valid(int i=-1);  //If asset is valid.
 
 //Number of assets.
-int assets(int broker);  
+int assets(int broker);
 double cash(int broker);
 
 const VecArrXi &positions(int broker) ; //A full length vector (may contain 0 if didn't buy some assets) of position on each asset.
@@ -628,8 +670,6 @@ using VecArrXi = Eigen::Array<int, Eigen::Dynamic, 1>;
 using VecArrXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
 using RowArrayXd = Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 ```
-
-
 
 ### Core logic
 
