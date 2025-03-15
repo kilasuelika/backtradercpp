@@ -1,16 +1,21 @@
 #pragma once
 /*ZhouYao at 2022-09-10*/
 
+#include <list>
+#include<format>
+#include <filesystem>
+#include <stack>
 #include "Common.hpp"
 #include "DataFeeds.hpp"
 #include "AyalysisUtil.hpp"
-#include <list>
+
 
 // #include "BaseBrokerImpl.hpp"
 
 namespace backtradercpp {
     class Cerebro;
     namespace broker {
+
         struct GenericCommission {
             GenericCommission() = default;
             GenericCommission(double long_rate, double short_rate)
@@ -61,7 +66,10 @@ namespace backtradercpp {
             std::string name;
             std::ofstream transaction_file_, position_file_;
         };
-
+        struct BrokerState
+        {
+            Portfolio portfolio_;
+        };
         class BaseBrokerImpl {
 
         public:
@@ -104,6 +112,10 @@ namespace backtradercpp {
                 portfolio_.reset();
             }
 
+            void disable_price_check()
+            {
+                disable_price_check_ = true;
+            }
             const auto& name() const { return feed_.name(); }
             const auto name(int index) const {
                 const auto& name_ = name();
@@ -114,6 +126,16 @@ namespace backtradercpp {
                 return std::make_shared<BaseBrokerImpl>(*this);
             }
 
+            virtual std::shared_ptr<BrokerState> get_state()
+            {
+                auto state = std::make_shared<BrokerState>();
+                state->portfolio_ = portfolio_;
+                return state;
+            }
+            virtual void set_state(std::shared_ptr<BrokerState>& state)
+            {
+                portfolio_ = state->portfolio_;
+            }
         protected:
             friend class BrokerAggragator;
             friend class Cerebro;
@@ -140,6 +162,7 @@ namespace backtradercpp {
             BaseBrokerImplLogUtil log_util_;
 
             void _write_position();
+            bool disable_price_check_ = false;
         };
 
         struct XRDSetting {
@@ -215,6 +238,12 @@ namespace backtradercpp {
                 sp->reset();
                 return *this;
             }
+
+            virtual BaseBroker& disable_price_check()
+            {
+                sp->disable_price_check();
+                return *this;
+            }
             auto& portfolio() const { return sp->portfolio_; };
 
             void process(Order& order) { sp->process(order); }
@@ -251,6 +280,9 @@ namespace backtradercpp {
 
             const auto& name() const { return sp->name(); }
             const auto& name(int index) const { return sp->name(index); }
+
+            void set_state(std::shared_ptr<BrokerState>& state) { sp->set_state(state); };
+            std::shared_ptr<BrokerState> get_state() { return sp->get_state(); };
 
             virtual ~BaseBroker() = default;
         };
@@ -371,6 +403,8 @@ namespace backtradercpp {
 
             void sync_feed_agg(const feeds::PriceFeedAggragator& feed_agg_);
 
+            void push_state();
+            void pop_state(bool pop_stack = true);
         private:
             // std::shared_ptr<feeds::FeedsAggragator> feed_agg_;
             std::vector<ptime> times_;
@@ -395,6 +429,9 @@ namespace backtradercpp {
 
             void _write_log();
             void _collect_portfolio();
+
+            // for reset state when repeat run
+            std::stack<std::vector<std::shared_ptr<BrokerState>>> broker_states_;
         };
 
         inline void backtradercpp::broker::BaseBrokerImplLogUtil::set_log_dir(const std::string& dir,
@@ -441,7 +478,7 @@ namespace backtradercpp {
                         order.price = order.price_eval->price(info);
                     }
                     //  1.Price is between min and max.
-                    if ((order.price >= info.low) && (order.price <= info.high)) {
+                    if (disable_price_check_ || (order.price >= info.low) && (order.price <= info.high)) {
                         order.value = order.volume * order.price;
                         double commission = commission_->cal_commission(order.price, order.volume);
                         double tax = tax_->cal_tax(order.price, order.volume);
@@ -480,6 +517,10 @@ namespace backtradercpp {
                                 order.volume > 0 ? "+" : "-", order.volume, order.price, order.value,
                                 order.fee, position_after, cash_after, ""));
                         }
+                    }
+                    else
+                    {
+                        // fmt::print(fmt::fg(fmt::color::red), "Target price {} is not in the range.\n");
                     }
                 }
             }
@@ -744,6 +785,28 @@ namespace backtradercpp {
             }
         }
 
+        void BrokerAggragator::push_state()
+        {
+            std::vector<std::shared_ptr<BrokerState>> states;
+            for (auto& b : brokers_) {
+                states.push_back(b.get_state());
+            }
+            broker_states_.push(states);
+        }
+        void BrokerAggragator::pop_state(bool pop_stack)
+        {
+            if (broker_states_.empty()) {
+                return;
+            }
+            auto states = broker_states_.top();
+            for (int i = 0; i < brokers_.size(); ++i) {
+                brokers_[i].set_state(states[i]);
+            }
+            if (pop_stack)
+            {
+                broker_states_.pop();
+            }
+        }
         inline void BaseBroker::set_log_dir(const std::string& dir, int index) {
 
             sp->set_log_dir(dir, index);

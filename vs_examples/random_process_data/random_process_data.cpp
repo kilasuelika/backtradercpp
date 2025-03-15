@@ -1,11 +1,10 @@
 #include <iostream>
 #include "../../include/backtradercpp/Cerebro.hpp"
-#include "../../include/backtradercpp/RandomProcessGenerator.hpp"
-#include "../../include/backtradercpp/RandomProcessDataFeeds.hpp"
+
 using namespace backtradercpp;
 using namespace std;
 
-struct SimpleStrategy : strategy::GenericStrategy {
+struct BuyLowStrategy : strategy::GenericStrategy {
     void run() override {
         // Buy assets at 6th day. Index starts from 0, so index 5 means 6th day.
         if (time_index() == 5) {
@@ -29,6 +28,6 @@ int main() {
     cerebro.add_broker(
         broker::BaseBroker(0.0005, 0.001)
         .set_feed(feeds::RandomProcessData(100, GeometricBrownianMotionProcess<double>(0, 1, 100)).set_dump_csv("GBM.csv")));
-    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.add_strategy(std::make_shared<BuyLowStrategy>());
     cerebro.run();
 }

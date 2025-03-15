@@ -26,7 +26,7 @@ namespace backtradercpp {
             return std::accumulate(
                 v.begin(), v.end(), 0.0,
                 [max_v = double(v.coeff(0))](const double& old_mdd, const double& b) mutable {
-                    double mdd = (max_v - b) / max_v;
+                    double mdd = max_v == 0 ? 0 : (max_v - b) / max_v;
                     max_v = std::max(max_v, b);
                     return std::max(old_mdd, mdd);
                 });
@@ -54,9 +54,14 @@ namespace backtradercpp {
                 growth = std::log((*(wealth.end() - 1)) / (*wealth.begin())) / (N / 250.0);
             }
             double mdd = MDD(_wealth);
-            double sharepe = rv.mean() / std::sqrt(rv.array().pow(2).mean() - std::pow(rv.mean(), 2));
 
-            return PerformanceMetric{ profit, profit_r, growth, mdd, sharepe };
+            double sharpe = 0;
+            auto sharepe_denom = rv.array().pow(2).mean() - std::pow(rv.mean(), 2);
+            if (sharepe_denom != 0) {
+                sharpe = rv.mean() / std::sqrt(sharepe_denom);
+            }
+
+            return PerformanceMetric{ profit, profit_r,r, growth, mdd, sharpe };
         }
 
         inline void PerformanceMetric::print() const {
@@ -113,7 +118,7 @@ namespace backtradercpp {
                     analysis::cal_performance(total_value_analyzers_[i]->total_value_history()));
 
                 auto& perf = performance_.back();
-                perf.profit_attr = perf.profit / performance_[0].profit;
+                perf.profit_attr = performance_[0].profit == 0 ? 0 : perf.profit / performance_[0].profit;
                 perf.return_attr =
                     perf.profit / *(total_value_analyzers_[0]->total_value_history().begin());
             }

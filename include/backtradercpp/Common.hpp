@@ -37,7 +37,7 @@ namespace backtradercpp {
     enum class Sel { All };
 
     struct OHLCData {
-        VecArrXd open, high, low, close;
+        VecArrXd open, high, low, close, ret, adj_ret;
         void resize(int assets);
         void reset();
     };
@@ -77,7 +77,7 @@ namespace backtradercpp {
             window_ = window;
             data_.set_capacity(window);
         }
-        void push_back(const T& new_data) { data_.push_back(new_data); }
+        virtual void push_back(const T& new_data) { data_.push_back(new_data); }
         virtual void push_back_() = 0;
 
         const auto& num(int k, const std::string& name) const;
@@ -144,9 +144,49 @@ namespace backtradercpp {
         VecArrXb valid(int time = -1) const;
         bool valid(int time, int stock) const;
 
+        VecArrXd ret(int time = -1) const;
+        double ret(int time, int stock) const;
+        VecArrXd ret(Sel s, int stock) const;
+        template <typename Ret = RowArrayXd> Ret ret(Sel r, Sel c) const;
+
+        VecArrXd adj_ret(int time = -1) const;
+        double adj_ret(int time, int stock) const;
+        VecArrXd adj_ret(Sel s, int stock) const;
+        template <typename Ret = RowArrayXd> Ret adj_ret(Sel r, Sel c) const;
+
         // template <typename T>
         // requires requires { std::is_same_v<T, FeedData>; }
-
+        // calculate ret
+        void push_back(const PriceFeedData& new_data) override
+        {
+            data_.push_back(new_data);
+            if (data_.size() > 1)
+            {
+                auto& last_feed = data_[data_.size() - 2];
+                auto& feed = data_.back();
+                for (int i = 0; i < feed.data.close.size(); ++i)
+                {
+                    auto last_close = last_feed.data.close.coeff(i);
+                    if (last_close != 0)
+                    {
+                        feed.data.ret.coeffRef(i) = feed.data.close[i] / last_close - 1;
+                    }
+                    else
+                    {
+                        feed.data.ret.coeffRef(i) = 0;
+                    }
+                    auto last_adj_close = last_feed.adj_data.ret.coeff(i);
+                    if (last_adj_close != 0)
+                    {
+                        feed.adj_data.ret.coeffRef(i) = feed.adj_data.close[i] / last_adj_close - 1;
+                    }
+                    else
+                    {
+                        feed.adj_data.ret.coeffRef(i) = 0;
+                    }
+                }
+            }
+        }
         void push_back_() override { data_.push_back(PriceFeedData(assets_)); }
 
         auto assets() const { return assets_; }
@@ -370,12 +410,12 @@ namespace backtradercpp {
     }
 
     inline void OHLCData::resize(int assets) {
-        for (auto& ele : { &open, &high, &low, &close }) {
+        for (auto& ele : { &open, &high, &low, &close, &ret }) {
             ele->resize(assets);
         }
     }
     inline void OHLCData::reset() {
-        for (auto& ele : { &open, &high, &low, &close }) {
+        for (auto& ele : { &open, &high, &low, &close, &ret }) {
             ele->setConstant(0);
         }
     }
@@ -441,11 +481,13 @@ namespace backtradercpp {
     BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, high, high);
     BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, low, low);
     BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, close, close);
+    BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(data, ret, ret);
 
     BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(adj_data, open, adj_open);
     BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(adj_data, high, adj_high);
     BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(adj_data, low, adj_low);
     BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(adj_data, close, adj_close);
+    BK_DEFINE_STRATEGYDATA_OHLC_MEMBER_ACCESSOR(adj_data, ret, adj_ret);
 
     BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR(VecArrXi, int, volume);
     BK_DEFINE_STRATEGYDATA_MEMBER_ACCESSOR(VecArrXb, bool, valid);

@@ -3,7 +3,7 @@
 using namespace backtradercpp;
 using namespace std;
 
-struct SimpleStrategy : strategy::GenericStrategy {
+struct BuyLowStrategy : strategy::GenericStrategy {
     void run() override {
         // Buy assets at 5th day.
         if (time_index() == 5) {
@@ -31,7 +31,7 @@ int main() {
                           }))
             .set_xrd_dir("../../example_data/CSVDirectory/xrd", {7, 6, 2, 3, 4}),
         2);
-    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.add_strategy(std::make_shared<BuyLowStrategy>());
     cerebro.set_log_dir("log");
     cerebro.run();
 

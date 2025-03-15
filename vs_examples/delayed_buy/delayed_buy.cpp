@@ -1,7 +1,7 @@
 #include "../../include/backtradercpp/Cerebro.hpp"
 using namespace backtradercpp;
 
-struct SimpleStrategy : strategy::GenericStrategy {
+struct BuyLowStrategy : strategy::GenericStrategy {
     void run() override {
         // Do nothing at initial 30 days.
         if (time_index() < 30) {
@@ -34,6 +34,6 @@ int main() {
             .set_feed(feeds::CSVTabPriceData("../../example_data/CSVTabular/djia.csv",
                                              feeds::TimeStrConv::non_delimited_date)),
         2); // 2 for window
-    cerebro.add_strategy(std::make_shared<SimpleStrategy>());
+    cerebro.add_strategy(std::make_shared<BuyLowStrategy>());
     cerebro.run();
 }

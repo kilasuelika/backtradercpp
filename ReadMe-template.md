@@ -2,16 +2,26 @@
 
 As the name suggesting, this library is partially inspired by [backtrader](https://www.backtrader.com/) on Python. In my own use, backtrader constantly made me confusing so I decide to write my own library.
 
+## Features
+
+1. `backtrader`-like API, easy for porting code.
+1. Multiple data source support like csv downladed from Yahoo, or generating data from random processes such as Geometric Brownian Motion..
+1. Repeat run with modified settings and parameters. There is also an `TableRunner` which can be use to optimize strategy parameters by table search.
+1. Strategy data dump and read. You can dump calculated data and read them in following runs to avoid repeat calculation. 
+
 ## ToDo
 
 -   [ ] Alignment between price and common data
--   [ ] Multiple strategies support
 -   [ ] Strategy Optimizer
 -   [x] Strategy data dump (not price data)
 -   [x] History data to vector and matrix
--   [ ] data().ret() and data().adj_ret()
--   [ ] data().invalid_count(): count invalid data count in window
--   [ ] RandomProcessDataFeeds for random process simulation and theoretic research
+-   [ ] data().ret(), data().adj_ret() require new fields. cal_ret() and cal_adj_ret() are calculated on demand.
+-   [ ] data().invalid_count(): count invalid days in window, useful when don't want to trade stocks which has too many invalid data on previous days.
+-   [x] RandomProcessDataFeeds for random process simulation and theoretic research.
+-   [ ] `register_custom_metric(),update_custom_metric()`: Register custom data when storing results. e.g. for optimizing strategy with custom metric.
+-   [ ] `require_indicator()`: Integrate financial indicator library like TA-Lib to register and calculate indicators on demand. `data(0).indicator(ID,-1,asset)`
+-   [ ] Reinforcement learning support
+-   [ ] Multiple strategies support, may not necessary
 
 ## Install
 
